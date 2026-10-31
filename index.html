@@ -135,9 +135,13 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
         <button type="button" data-l="svh" aria-pressed="false">VH</button>
         <button type="button" data-l="svvchg" aria-pressed="false">VV wet − dry, summer</button>
         <button type="button" data-l="wvvchg" aria-pressed="false">VV wet − dry, winter</button></div></div>
+      <div class="lg"><span class="lbl">Groundwater</span><div class="seg" role="group" aria-label="Groundwater layers">
+        <button type="button" data-l="hand" aria-pressed="false">Height above stream</button>
+        <button type="button" data-l="swt" aria-pressed="false">Soil water table</button></div></div>
       <div class="lg"><span class="lbl">Random forest</span><div class="seg" role="group" aria-label="Model layers">
         <button type="button" data-l="rft" aria-pressed="false">Terrain only</button>
         <button type="button" data-l="rfa" aria-pressed="false">Terrain + radar</button>
+        <button type="button" data-l="rfg" aria-pressed="false">Full model</button>
         <button type="button" data-l="rfw" aria-pressed="false">Model wetland map</button></div></div>
     </div>
     <label class="chk" for="shownwi"><input type="checkbox" id="shownwi" checked> NWI wetlands</label>
@@ -351,12 +355,18 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
         <div class="tblwrap"><table class="nwit" id="rftbl"></table></div>
       </div>
       <div class="panel">
-        <div class="ptitle"><span>Wet / dry cut-offs for the map layer</span><span>terrain + radar</span></div>
+        <div class="ptitle"><span>Wet / dry cut-offs for the map layer</span><span>full model</span></div>
         <div class="tblwrap"><table class="nwit" id="rfthr"></table></div>
       </div>
       <div class="panel">
-        <div class="ptitle"><span>What the terrain + radar model relies on</span><span>AUC lost when shuffled</span></div>
+        <div class="ptitle"><span>What the full model relies on</span><span>AUC lost when shuffled</span></div>
         <div class="tblwrap"><table class="nwit" id="rfimp"></table></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>Groundwater proxies, one at a time</span><span>AUC within like land cover</span></div>
+        <div class="tblwrap"><table class="nwit" id="gwauc"></table></div>
       </div>
     </div>
     <p class="note">AUC: chance that a wetland cell gets a higher probability than a non-wetland cell. AP (average precision) summarises how clean the top of the ranking is; with wetlands only <span id="rfshare"></span> of cells, a random map scores AP ≈ <span id="rfshare2"></span>. Cut-offs are chosen on the held-out predictions. The ROC cut-off (Youden: largest recall minus false-alarm rate) treats the 2.5% wetland class and the 97.5% dry class equally, so it accepts many false alarms; the F1 cut-off balances precision and recall on the wetland class itself and maps about NWI's area. The model learns to reproduce NWI, errors included: blue outside NWI is a candidate for checking, not proof of a missed wetland.</p>
@@ -369,8 +379,9 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
       <li><b>Hydroperiod.</b> Mean days per year the model holds a cell at saturation (2003–2025, Stage IV rainfall, gridMET evapotranspiration, 250 mm root-zone store). With SSURGO soil the floodplain gravels drain fast and many NWI wetlands look dry. With uniform soil the map tracks 16 m TWI more closely. Open water (NHD) is masked and shows as grey relief.</li>
       <li><b>Saturation calendar.</b> The model never dries the whole fen: 3 of its 19 cells stay saturated every day. The rest is wettest from December to June and drains from July to November, most in dry years such as 2012, 2014 and 2017. Saturation peaks in May, about two months after the measured soil water at Salem, because water from the hillslopes reaches the valley floor late. NWI codes the fen <code>B</code> (saturated most of the year), which suggests groundwater keeps it wet when rain alone would not. Testing that needs water-table records at the fen.</li>
       <li><b>NISAR radar.</b> L-band backscatter is almost unrelated to TWI (rank correlation about 0) and much weaker on its own (AUC about 0.6 against 0.8–0.9 for TWI). Wetlands in forest are brighter in HH, as expected from trunk–water double bounce. NWI emergent wetlands brighten more after rain than other open ground, but there are only 327 such cells. Switch to <em>NISAR HH wet − dry</em> and look along the valley floors.</li>
-      <li><b>Combined model.</b> Terrain alone (TWI, slope, hydroperiod, land cover) already reaches AUC 0.97 against NWI; most of the gain over TWI comes from slope. Adding radar barely moves AUC but makes the top of the ranking cleaner (AP 0.46 → 0.53) and helps most in open land (AUC 0.74 → 0.82 with NISAR). Single radar features look unimportant in the shuffle test only because the radar features carry overlapping information; dropping all radar is what lowers the score. Barton Fen's probability falls from 0.63 (terrain) to 0.33 (with radar): its radar signature, bright but unresponsive to rain, is unlike the mostly forested NWI wetlands the model learns from.</li>
-      <li><b>Model wetland map.</b> At the strict cut-off the model maps <span id="rfw1"></span>. Barton Fen: of its 18 cells inside NWI, 2 are wet at the strict cut-off, 14 only at the lenient one and 2 at neither, so the model ranks the fen as uncertain, not dry.</li>
+      <li><b>Combined model.</b> Terrain alone (TWI, slope, hydroperiod, land cover) already reaches AUC 0.97 against NWI; most of the gain over TWI comes from slope. Adding radar barely moves AUC but makes the top of the ranking cleaner (AP 0.46 → 0.53) and helps most in open land (AUC 0.74 → 0.82 with NISAR). Single radar features look unimportant in the shuffle test only because the radar features carry overlapping information; dropping all radar is what lowers the score. Barton Fen's probability falls from <span class="fp" data-k="topo"></span> (terrain) to <span class="fp" data-k="topo_all"></span> (with radar): its radar signature, bright but unresponsive to rain, is unlike the mostly forested NWI wetlands the model learns from.</li>
+      <li><b>Groundwater proxies.</b> Height above the nearest stream is the strongest single predictor of NWI found so far (AUC 0.97 in forest, 0.91 in open land, against 0.91 and 0.80 for TWI), and adding it lifts the model to AP 0.70. The SSURGO water table and drainage class run the <em>wrong</em> way: the soil survey rates the floodplain gravels as deep and well drained, and it rates the fen excessively drained with no water table within 2 m. The better the model copies NWI, the lower it ranks the fen (median probability <span class="fp" data-k="all_gw"></span> in the full model): NWI here is mostly floodplain forest, and a hillside-toe seep does not look like that. Finding fens will need their own labels (field points) rather than more NWI-trained inputs.</li>
+      <li><b>Model wetland map.</b> At the strict cut-off the model maps <span id="rfw1"></span>. Barton Fen: of its 18 cells inside NWI, <span id="rfw2"></span>.</li>
       <li><b>Large flat water bodies.</b> The dark blue patches in the south-west and north-west are flat surfaces, likely ponds or reservoirs. Filling makes them perfectly flat, so they take the slope floor and the highest TWI.</li>
       <li><b>Road crossings.</b> In the close-up, short straight blue lines cut through the road embankment. These are the breach paths standing in for culverts.</li>
     </ul>
@@ -427,10 +438,16 @@ const LY = {
     hint: "Leaves off: Sentinel-1 VV on 12 Mar 2026 (141 mm in the week before) minus the mean of 3 dry winter passes (11 Jan, 4 Feb, 28 Feb). One wet date only, so treat it as a hint." },
   rft: { lab: "P(wetland), terrain", ramp: D.ramps.rft.hex, lo: 0, hi: 1, unit: "", dp: 2,
     hint: "Random-forest probability that a 16 m cell is an NWI vegetated wetland, from TWI, slope, hydroperiod and land cover. Every cell is predicted by a model trained on other 3 km blocks." },
+  hand: { lab: "Height above stream", ramp: D.ramps.hand.hex, lo: 0, hi: 10, unit: " m", dp: 1,
+    hint: "Height above nearest drainage (HAND): how far a 16 m cell sits above the stream cell its flow path reaches (streams = 0.1 km² drainage area). Low ground near stream level usually has a shallow water table. Dark = near stream level." },
+  swt: { lab: "Soil water table", ramp: D.ramps.swt.hex, lo: 0, hi: 200, unit: " cm", dp: 0,
+    hint: "SSURGO annual minimum depth to the water table, one value per soil map unit; ≥ 200 cm where the survey records none. It marks most floodplain gravels as deep, so it runs against NWI here." },
+  rfg: { lab: "P(wetland), full model", ramp: D.ramps.rfg.hex, lo: 0, hi: 1, unit: "", dp: 2,
+    hint: "Terrain + both radars + groundwater proxies (height above stream, distance to stream, SSURGO water table, drainage, bedrock, hydric share). Best match to NWI." },
   rfa: { lab: "P(wetland), terrain + radar", ramp: D.ramps.rfa.hex, lo: 0, hi: 1, unit: "", dp: 2,
     hint: "Same model with NISAR and Sentinel-1 added (means, wet − dry changes, polarisation ratios). Compare with Terrain only along the valley floors." },
   rfw: { lab: "Model wetland map", ramp: D.ramps.rfw.hex, cats: D.ramps.rfw.cats, lo: 0, hi: 2, unit: "", dp: 0,
-    hint: "Terrain + radar model turned into wet / dry with cut-offs chosen from its accuracy curves. Dark blue = wet at the strict cut-off (best balance of precision and recall, F1); light blue = wet only at the lenient ROC cut-off (Youden), which catches 92% of NWI but maps 4–5 times its area. Orange polygons = NWI: blue outside orange is model-only wetland, orange without blue is NWI the model misses." },
+    hint: "Full model turned into wet / dry with cut-offs chosen from its accuracy curves. Dark blue = wet at the strict cut-off (best balance of precision and recall, F1); light blue = wet only at the lenient ROC cut-off (Youden), which catches 97% of NWI but maps about 4 times its area. Orange polygons = NWI: blue outside orange is model-only wetland, orange without blue is NWI the model misses." },
   nratio: { lab: "HH − HV", ramp: D.ramps.nratio.hex, lo: D.ramps.nratio.lo, hi: D.ramps.nratio.hi, unit: " dB", dp: 1,
     hint: "HH minus HV (the HH/HV ratio in dB), all 9 passes, 16 m grid. High = surface or trunk–ground double bounce dominates over canopy volume scattering; a common flag for wet ground under trees. Darker purple = higher." },
 };
@@ -825,21 +842,32 @@ document.getElementById("valleyauc").innerHTML = "<tr><th>Layer</th><th>Forest</
 const SF = S1.fen;
 document.getElementById("s1fen").innerHTML = `<b>Barton Fen in Sentinel-1.</b> Summer VV brighter than ${fmt(SF.summer.percentile_among_open.VV_all)}% of non-wetland open ground, winter ${fmt(SF.leafoff.percentile_among_open.VV_all)}%; wet − dry change lower than ${fmt(100 - SF.summer.percentile_among_open.VV_change)}% (summer) and ${fmt(100 - SF.leafoff.percentile_among_open.VV_change)}% (winter) of open ground. Both radars, both seasons: bright but barely responsive to rain.`;
 const RFD = D.rf, RNAME = { raw_twi16: "TWI 16 m, raw (no model)", raw_hydroperiod_uni: "Hydroperiod, raw (no model)", twi: "TWI only", topo: "Terrain: TWI, slope, hydroperiod, land cover",
-  topo_nisar: "Terrain + NISAR", topo_s1: "Terrain + Sentinel-1", topo_all: "Terrain + NISAR + Sentinel-1", radar: "Radar + land cover, no terrain" };
+  topo_nisar: "Terrain + NISAR", topo_s1: "Terrain + Sentinel-1", topo_all: "Terrain + NISAR + Sentinel-1", radar: "Radar + land cover, no terrain",
+  topo_hand: "Terrain + height above stream", topo_gw: "Terrain + height above stream + SSURGO", all_gw: "Full: terrain + radar + groundwater" };
 document.getElementById("rfbase").textContent = `${fmt(RFD.cells)} cells, ${fmt(RFD.baseline.wetland_share * 100, 1)}% in NWI wetlands.`;
 document.getElementById("rfshare").textContent = fmt(RFD.baseline.wetland_share * 100, 1) + "%";
 document.getElementById("rfshare2").textContent = fmt(RFD.baseline.wetland_share, 3);
 document.getElementById("rftbl").innerHTML = "<tr><th>Inputs</th><th>AUC</th><th>AP</th><th>Valley AUC</th><th>Forest</th><th>Open</th></tr>" +
   Object.keys(RNAME).filter(k => RFD.sets[k]).map(k => { const r = RFD.sets[k];
-    return `<tr${k === "topo_all" ? ' style="font-weight:600"' : ""}><td>${RNAME[k]}</td><td class="num">${r.auc.toFixed(2)}</td><td class="num">${r.ap.toFixed(2)}</td><td class="num">${r.auc_valley.toFixed(2)}</td><td class="num">${r.auc_forest.toFixed(2)}</td><td class="num">${r.auc_open.toFixed(2)}</td></tr>`; }).join("");
-const TH = RFD.thr.topo_all, TNAME = { f1: "Strict (F1)", roc: "Lenient (ROC, Youden)" };
+    return `<tr${k === "all_gw" ? ' style="font-weight:600"' : ""}><td>${RNAME[k]}</td><td class="num">${r.auc.toFixed(2)}</td><td class="num">${r.ap.toFixed(2)}</td><td class="num">${r.auc_valley.toFixed(2)}</td><td class="num">${r.auc_forest.toFixed(2)}</td><td class="num">${r.auc_open.toFixed(2)}</td></tr>`; }).join("");
+const TH = RFD.thr.all_gw, TNAME = { f1: "Strict (F1)", roc: "Lenient (ROC, Youden)" };
 document.getElementById("rfthr").innerHTML = "<tr><th>Cut-off</th><th>Probability</th><th>NWI found</th><th>Precision</th><th>Mapped</th><th>Outside NWI</th></tr>" +
   ["f1", "roc"].map(k => { const t = TH[k]; return `<tr><td>${TNAME[k]}</td><td class="num">≥ ${t.threshold.toFixed(2)}</td><td class="num">${fmt(t.recall * 100)}%</td><td class="num">${fmt(t.precision * 100)}%</td><td class="num">${fmt(t.mapped_ha)} ha</td><td class="num">${fmt(t.model_only_ha)} ha</td></tr>`; }).join("") +
   `<tr><td>NWI vegetated wetland</td><td></td><td></td><td></td><td class="num">${fmt(TH.nwi_ha)} ha</td><td></td></tr>`;
 document.getElementById("rfw1").textContent = `${fmt(TH.f1.mapped_ha)} ha: ${fmt(TH.f1.both_ha)} ha inside NWI, ${fmt(TH.f1.model_only_ha)} ha outside it, and misses ${fmt(TH.f1.nwi_only_ha)} ha of NWI`;
-const IMP = Object.entries(RFD.importance_topo_all).slice(0, 12), imax = IMP[0][1];
+const GW = D.gw, GNAME = [["hand_01_neg", "hand_01", "Height above stream (0.1 km² streams)", " m"], ["hand_1_neg", "hand_1", "Height above stream (1 km² streams)", " m"],
+  ["dist_01_neg", "dist_01", "Distance to stream (0.1 km²)", " m"], ["ssurgo_wt_cm_neg", "ssurgo_wt_cm", "SSURGO water-table depth", " cm"], ["ssurgo_drain", "ssurgo_drain", "SSURGO drainage class (0 excessive … 6 very poor)", ""],
+  ["ssurgo_bedrock_cm_neg", "ssurgo_bedrock_cm", "SSURGO bedrock depth", " cm"], ["ssurgo_hydric_pct", "ssurgo_hydric_pct", "SSURGO hydric share", "%"], ["twi_16m", null, "TWI 16 m (reference)", ""]];
+document.getElementById("gwauc").innerHTML = "<tr><th>Layer</th><th>Forest</th><th>Open</th><th>Barton Fen</th></tr>" +
+  GNAME.map(([k, f, lab, u]) => `<tr${k === "twi_16m" ? ' style="font-weight:600"' : ""}><td>${lab}</td><td class="num">${GW.auc.forest[k].toFixed(2)}</td><td class="num">${GW.auc.open[k].toFixed(2)}</td><td class="num">${f ? fmt(GW.fen[f], GW.fen[f] % 1 ? 1 : 0) + u : ""}</td></tr>`).join("");
+const FC = TH.fen_cells.in_nwi;
+document.getElementById("rfw2").textContent = `${FC["2"]} are wet at the strict cut-off, ${FC["1"]} only at the lenient one and ${FC["0"]} at neither`;
+document.querySelectorAll(".fp").forEach(e => e.textContent = RFD.fen_median_prob[e.dataset.k].toFixed(2));
+const IMP = Object.entries(RFD.importance_all_gw).slice(0, 12), imax = IMP[0][1];
 const FNAME = k => k.replace("twi16", "TWI 16 m").replace("slope16", "slope 16 m").replace("hydroperiod_uni", "hydroperiod, uniform soil").replace("hydroperiod_soil", "hydroperiod, SSURGO")
-  .replace("lc_", "land cover: ").replace("nisar_", "NISAR ").replace("s1summer_", "S1 summer ").replace("s1leafoff_", "S1 winter ").replace("_all", ", mean").replace("_change", ", wet − dry").replace("_minus_", " − ");
+  .replace("lc_", "land cover: ").replace("nisar_", "NISAR ").replace("s1summer_", "S1 summer ").replace("s1leafoff_", "S1 winter ").replace("_all", ", mean").replace("_change", ", wet − dry").replace("_minus_", " − ").replace("hand_01", "height above stream (0.1 km²)").replace("hand_1", "height above stream (1 km²)")
+  .replace("dist_01", "distance to stream (0.1 km²)").replace("dist_1", "distance to stream (1 km²)").replace("ssurgo_wt_cm", "SSURGO water table").replace("ssurgo_drain", "SSURGO drainage class")
+  .replace("ssurgo_bedrock_cm", "SSURGO bedrock depth").replace("ssurgo_hydric_pct", "SSURGO hydric share");
 document.getElementById("rfimp").innerHTML = "<tr><th>Feature</th><th>AUC drop</th><th></th></tr>" +
   IMP.map(([k, v]) => `<tr><td>${FNAME(k)}</td><td class="num">${v.toFixed(3)}</td><td style="width:40%"><i style="display:block;height:8px;border-radius:0 4px 4px 0;background:var(--s1);width:${Math.max(0, v / imax * 100)}%"></i></td></tr>`).join("");
 render();
