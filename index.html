@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strother Creek wetland viewer</title>
+<meta name="description" content="Missouri wetland pilot: 1 m LiDAR DEM, TWI, hydroperiod, NWI and NISAR L-band radar for HUC12 110100070301.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+body { margin: 0; background: var(--bg); color: var(--fg); }
+/* Layout: a survey sheet. Header facts strip, then two map rows (watershed, fen site), each 2D plan view beside a 3D surface. */
+:root {
+  --bg: #f3f5f2; --panel: #ffffff; --fg: #1c2622; --muted: #5d6b64; --rule: #d5ddd7;
+  --huc: #b3261e; --buf: #6b5a00; --site: #e0218a; --accent: #1f6f5c;
+  --nwi-veg: #eb6834; --nwi-water: #1baf7a; --nwi-river: #6250d6;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33;
+  --huc: #ff6b5e; --buf: #e2c84a; --site: #ff5cbf; --accent: #5cc3a4; --nwi-veg: #d95926; --nwi-water: #199e70; --nwi-river: #9085e9; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33;
+  --huc: #ff6b5e; --buf: #e2c84a; --site: #ff5cbf; --accent: #5cc3a4; --nwi-veg: #d95926; --nwi-water: #199e70; --nwi-river: #9085e9; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.6rem, 3vw, 2.3rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.25rem; margin: 0; text-wrap: balance; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+header { display: grid; gap: 10px; }
+header p { margin: 0; color: var(--muted); max-width: 70ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding-block: 12px; }
+.fact { display: grid; }
+.fact b { font-family: var(--mono); font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; }
+.fact span { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+section { display: grid; gap: 12px; }
+.sechead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.sechead p { margin: 0; color: var(--muted); font-size: 14px; max-width: 75ch; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .row { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.ptitle { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.map { position: relative; width: 100%; overflow: hidden; }
+.map img { display: block; width: 100%; height: auto; image-rendering: auto; }
+.map svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.plot3d { width: 100%; aspect-ratio: 4 / 3; max-width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); align-items: center; }
+.sw { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2.5px solid; }
+.ramp { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ramp i { display: block; width: 120px; height: 10px; border-radius: 2px;
+  background: linear-gradient(90deg,#143478,#215a7b,#2e7b7f,#38896c,#409455,#599f4a,#81a854,#a2b15a,#b9b260,#c3a46c,#d8b49b); }
+label.ve { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; text-transform: none; letter-spacing: 0; }
+input[type=range] { accent-color: var(--accent); width: 110px; }
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.ramp i.twi { background: linear-gradient(90deg,#e7f1fa,#d5e5f4,#c2d9ee,#a4cce3,#81badb,#5da5d1,#4090c5,#2777b8,#1460a8,#08488e,#08306b); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 10px; border-bottom: 1px solid var(--rule); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.toolbar .lbl { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.seg button { font: 600 14px var(--body); color: var(--fg); background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.toolbar .hint { font-size: 13px; color: var(--muted); }
+.histwrap { position: relative; overflow-x: auto; }
+#hist { display: block; width: 100%; min-width: 520px; height: auto; }
+#hist text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+#hist .lab { font-family: var(--body); font-size: 13px; fill: var(--fg); }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px;
+  font-size: 12px; font-family: var(--mono); color: var(--fg); box-shadow: 0 2px 8px rgba(0,0,0,.12); white-space: nowrap; }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.chk input { accent-color: var(--accent); width: 16px; height: 16px; }
+.nwi path { vector-effect: non-scaling-stroke; cursor: help; }
+.nwi path:hover { stroke-width: 3.5; }
+.sw.fill { height: 12px; border-top-width: 2px; }
+.maptip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 9px;
+  font-size: 12px; font-family: var(--mono); color: var(--fg); box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; z-index: 3; }
+table.nwit { border-collapse: collapse; font-size: 14px; min-width: 520px; }
+table.nwit th, table.nwit td { text-align: left; padding: 6px 14px 6px 0; border-bottom: 1px solid var(--rule); }
+table.nwit th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; }
+table.nwit td.num { font-variant-numeric: tabular-nums; text-align: right; padding-right: 22px; }
+table.nwit code { font-family: var(--mono); }
+.tblwrap { overflow-x: auto; }
+.chart { display: block; width: 100%; min-width: 560px; height: auto; }
+.chart text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.chart .lab { font-family: var(--body); font-size: 13px; fill: var(--fg); }
+#cal { display: block; width: 100%; min-width: 640px; }
+.ramp i.sat { width: 100px; }
+.ramp i.swatch { width: 14px; height: 10px; }
+.ramp i.nod { background: var(--rule); }
+:root { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; } }
+:root[data-theme="dark"] { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; }
+.findings { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 80ch; }
+.findings b { font-weight: 600; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 12px; display: grid; gap: 4px; }
+footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Phase 0 pilot · static TWI, rainfall-driven hydroperiod and NISAR L-band radar</div>
+    <h1>Strother Creek watershed, HUC12 110100070301</h1>
+    <p>The 1 m bare-earth DEM mosaicked from six MO_7County_D23 tiles (2023 acquisition), with three MO_FEMAR7 tiles (2017) filling 10 km² in the north-west where the 2023 project ends, and clipped to the HUC12 plus a 200 m buffer. The fen study site sits on the valley floor of Strother Creek.</p>
+    <div class="facts" id="facts"></div>
+  </header>
+
+  <div class="toolbar">
+    <span class="lbl">Map layer</span>
+    <div class="seg" role="group" aria-label="Map layer">
+      <button type="button" data-l="twi" aria-pressed="true">TWI 1 m</button>
+      <button type="button" data-l="twi16" aria-pressed="false">TWI 16 m</button>
+      <button type="button" data-l="hps" aria-pressed="false">Hydroperiod · SSURGO soil</button>
+      <button type="button" data-l="hpu" aria-pressed="false">Hydroperiod · uniform soil</button>
+      <button type="button" data-l="nhh" aria-pressed="false">NISAR HH</button>
+      <button type="button" data-l="nchg" aria-pressed="false">NISAR HH wet − dry</button>
+      <button type="button" data-l="nhv" aria-pressed="false">NISAR HV</button>
+      <button type="button" data-l="nhvchg" aria-pressed="false">NISAR HV wet − dry</button>
+      <button type="button" data-l="nratio" aria-pressed="false">NISAR HH − HV</button>
+      <button type="button" data-l="elev" aria-pressed="false">Elevation</button>
+    </div>
+    <label class="chk" for="shownwi"><input type="checkbox" id="shownwi" checked> NWI wetlands</label>
+    <span class="hint" id="lyrhint">TWI = ln(a / tan β), FD8 flow (exponent 1.0), shaded relief underneath. Darker blue = wetter.</span>
+  </div>
+
+  <section>
+    <div class="sechead">
+      <h2>Whole watershed</h2>
+      <p>2D at 8 m display resolution (TWI shows the wettest 1 m cell in each 8 m block so narrow channels stay visible). 3D on a 30 m grid. Drag to rotate, scroll to zoom, hover for elevation and TWI.</p>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="border-color:var(--huc)"></i>HUC12 boundary</span>
+      <span><i class="sw" style="border-color:var(--buf);border-top-style:dashed"></i>200 m buffer (DEM extent; in TWI mode shown as grey relief, since TWI is clipped to the HUC12)</span>
+      <span><i class="sw" style="border-color:var(--site)"></i>Fen study site</span>
+      <span class="nwileg"><i class="sw fill" style="border-color:var(--nwi-veg);background:color-mix(in srgb, var(--nwi-veg) 25%, transparent)"></i>NWI vegetated wetland</span>
+      <span class="nwileg"><i class="sw fill" style="border-color:var(--nwi-water);background:color-mix(in srgb, var(--nwi-water) 35%, transparent)"></i>NWI lake / pond</span>
+      <span class="nwileg"><i class="sw" style="border-color:var(--nwi-river);border-top-style:dashed"></i>NWI riverine</span>
+      <span class="ramp" id="ramp1"></span>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>2D plan view</span><span>north up</span></div>
+        <div class="map" id="ws2d"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>3D surface</span>
+          <label class="ve" for="ve1">Vertical exaggeration <input type="range" id="ve1" min="1" max="10" step="0.5" value="4"><b id="ve1v">4×</b></label></div>
+        <div class="plot3d" id="ws3d"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>Fen site close-up</h2>
+      <p>An 800 × 800 m window centred on the site. 2D at full 1 m resolution; 3D at 2 m. The straight raised line crossing the valley is a road embankment.</p>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="border-color:var(--site)"></i>Fen study site (0.5 ha)</span>
+      <span class="nwileg"><i class="sw fill" style="border-color:var(--nwi-veg);background:color-mix(in srgb, var(--nwi-veg) 25%, transparent)"></i>NWI vegetated wetland</span>
+      <span class="nwileg"><i class="sw fill" style="border-color:var(--nwi-water);background:color-mix(in srgb, var(--nwi-water) 35%, transparent)"></i>NWI lake / pond</span>
+      <span class="nwileg"><i class="sw" style="border-color:var(--nwi-river);border-top-style:dashed"></i>NWI riverine</span>
+      <span class="ramp" id="ramp2"></span>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>2D plan view · 1 m</span><span>north up</span></div>
+        <div class="map" id="site2d"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>3D surface · 2 m</span>
+          <label class="ve" for="ve2">Vertical exaggeration <input type="range" id="ve2" min="1" max="10" step="0.5" value="3"><b id="ve2v">3×</b></label></div>
+        <div class="plot3d" id="site3d"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>National Wetlands Inventory</h2>
+      <p>NWI polygons from the US Fish &amp; Wildlife Service Missouri dataset, clipped to the buffered HUC12. Hover a polygon on either map for its Cowardin code.</p>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>Inside the HUC12</span></div>
+        <div class="tblwrap"><table class="nwit" id="nwisum"></table></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>Within the 800 m close-up</span></div>
+        <div class="tblwrap"><table class="nwit" id="nwisite"></table></div>
+      </div>
+    </div>
+    <p class="note">The fen itself is mapped as <code>PEM1B</code>: palustrine emergent, persistent vegetation, water regime B = saturated (soil waterlogged to the surface for long periods, surface water seldom present). That regime is typical of groundwater-fed seeps and fens.</p>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>TWI distribution</h2>
+      <p>Share of 1 m cells in each 0.5-wide TWI bin. All 103 million watershed cells against the 5,037 cells inside the fen site.</p>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="border-color:var(--muted);border-top-width:8px;opacity:.45"></i>Watershed (HUC12)</span>
+      <span><i class="sw" style="border-color:var(--site)"></i>Fen study site</span>
+      <span><i class="sw" style="border-color:var(--muted);border-top-style:dashed"></i>Median</span>
+    </div>
+    <div class="panel">
+      <div class="histwrap" id="histwrap">
+        <svg id="hist" viewBox="0 0 900 320" role="img" aria-label="Histogram of TWI for the watershed and the fen site"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>How well each map finds NWI wetlands</h2>
+      <p>AUC: the chance that a random cell inside an NWI vegetated wetland scores wetter than a random non-wetland cell in the HUC12 (open water excluded). 0.5 is no skill. Hover a point for details.</p>
+    </div>
+    <div class="legend" id="aucleg"></div>
+    <div class="panel">
+      <div class="histwrap" id="aucwrap">
+        <svg id="aucchart" class="chart" viewBox="0 0 900 340" role="img" aria-label="AUC against NWI vegetated wetlands by grid cell size"></svg>
+        <div class="tip" id="auctip" hidden></div>
+      </div>
+      <div class="tblwrap"><table class="nwit" id="auctbl"></table></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>When the fen is saturated</h2>
+      <p>Rainfall-driven model on the 16 m grid with the 250 mm root-zone store, one row per water year (October to September). Colour is the share of the fen's <span id="cal-n"></span> grid cells that are saturated that day. Hover a day for rainfall and saturation.</p>
+    </div>
+    <div class="toolbar" style="position:static;border:0;padding:0">
+      <span class="lbl">Soil</span>
+      <div class="seg" role="group" aria-label="Soil properties">
+        <button type="button" data-s="soil" aria-pressed="true">SSURGO soil</button>
+        <button type="button" data-s="uni" aria-pressed="false">Uniform soil</button>
+      </div>
+      <span class="ramp">0% <i class="sat"></i> 100% of fen cells saturated</span>
+      <span class="ramp"><i class="swatch nod"></i> no data</span>
+    </div>
+    <div class="panel">
+      <div class="histwrap" id="calwrap">
+        <canvas id="cal" role="img" aria-label="Calendar of daily fen saturation by water year"></canvas>
+        <div class="tip" id="caltip" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>Model check against measured soil moisture</h2>
+      <p>NOAA USCRN station Salem 10 W, 58 km west on the same Ozark plateau, measures soil water at 5, 10, 20, 50 and 100 cm. Observed water in the top metre against the model's root-zone store (watershed rainfall). Each series is scaled from its own driest day (0) to its wettest (100).</p>
+    </div>
+    <div class="toolbar" style="position:static;border:0;padding:0">
+      <label class="chk" for="smyear"><span class="lbl">Water year</span>
+        <select id="smyear" style="font:600 14px var(--body);color:var(--fg);background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:5px 8px"></select></label>
+      <span class="legend" style="gap:6px 18px">
+        <span><i class="sw" style="border-color:var(--s1)"></i>Observed, 0–100 cm</span>
+        <span><i class="sw" style="border-color:var(--s2)"></i>Model store, 250 mm</span>
+      </span>
+    </div>
+    <div class="panel">
+      <div class="histwrap" id="smwrap">
+        <svg id="smchart" class="chart" viewBox="0 0 900 300" role="img" aria-label="Observed soil water and modelled store over time"></svg>
+        <div class="tip" id="smtip" hidden></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>Fit, water years 2010–2025</span></div>
+        <div class="tblwrap"><table class="nwit" id="smscore"></table></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>Choosing the store size (station rain gauge)</span></div>
+        <div class="tblwrap"><table class="nwit" id="smsweep"></table></div>
+      </div>
+    </div>
+    <p class="note">Timing error: median days, model minus observed, for the autumn date each series first rises above its own median and the spring/summer date it first falls below it. Negative = model early. The first version of the model used a 100 mm store and wet up 42 days and dried out 25 days too early; every map and chart on this page now uses 250 mm.</p>
+    <p class="note">The 50 cm and 100 cm probes step up in mid-December 2021: wet-season readings at 50 cm jump from about 0.30 to 0.45 m³/m³ and stay there, in a year that was not unusually wet. This looks like a sensor change, and it is why winters from 2022 on reach higher in the observed line. Using only 2010–2021 gives the same store size (250 mm: wet-up −1 day, dry-out −2 days, r 0.84).</p>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>NISAR L-band radar</h2>
+      <p>Nine descending passes (track 12, 10 m product, averaged to the 16 m TWI grid), 27 June to 13 October 2026. Passes were grouped by rain in the previous week and by the 250 mm soil-water store. Invalid pixels were masked using the product mask; averages were taken in linear power.</p>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>Passes</span><span>watershed medians</span></div>
+        <div class="tblwrap"><table class="nwit" id="nisarpass"></table></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>Finding NWI wetlands within like land cover</span><span>AUC</span></div>
+        <div class="tblwrap"><table class="nwit" id="nisarauc"></table></div>
+      </div>
+    </div>
+    <p class="note">AUC here compares NWI wetland cells with non-wetland cells of the <em>same</em> NLCD 2021 land cover. Forest = deciduous, evergreen, mixed forest and woody wetland, scored with NWI forested/shrub wetlands. Open = shrub, grassland, pasture, crops and herbaceous wetland, scored with NWI emergent wetlands. Comparing across the whole watershed instead mostly measures forest against open land. 0.5 = no skill; for radar, above 0.5 means wetlands are brighter (or brighten more after rain).</p>
+    <p class="note" id="nisarfen"></p>
+  </section>
+  <section>
+    <div class="sechead"><h2>What to check</h2></div>
+    <ul class="findings">
+      <li><b>Fen site.</b> Median 1 m TWI <span id="f-sitemed"></span>, wetter than <span id="f-pct"></span> of the watershed. The wettest quarter of the site (TWI above <span id="f-p75"></span>) is above the watershed's 95th percentile (<span id="f-p95"></span>). On the 16 m grid the fen ranks at the 94th percentile.</li>
+      <li><b>1 m vs 16 m TWI.</b> Switch between the two. At 1 m the floodplain breaks into thin threads of high TWI with drier ground between them. The NWI wetlands sit on that drier-looking ground, so 1 m TWI scores <em>below</em> chance (AUC 0.38). At 16 m the whole valley floor reads wet and AUC rises to 0.89. Averaging the 1 m TWI up to 16 m does not fix it; the DEM itself has to be coarser.</li>
+      <li><b>Hydroperiod.</b> Mean days per year the model holds a cell at saturation (2003–2025, Stage IV rainfall, gridMET evapotranspiration, 250 mm root-zone store). With SSURGO soil the floodplain gravels drain fast and many NWI wetlands look dry. With uniform soil the map tracks 16 m TWI more closely. Open water (NHD) is masked and shows as grey relief.</li>
+      <li><b>Saturation calendar.</b> The model never dries the whole fen: 3 of its 19 cells stay saturated every day. The rest is wettest from December to June and drains from July to November, most in dry years such as 2012, 2014 and 2017. Saturation peaks in May, about two months after the measured soil water at Salem, because water from the hillslopes reaches the valley floor late. NWI codes the fen <code>B</code> (saturated most of the year), which suggests groundwater keeps it wet when rain alone would not. Testing that needs water-table records at the fen.</li>
+      <li><b>NISAR radar.</b> L-band backscatter is almost unrelated to TWI (rank correlation about 0) and much weaker on its own (AUC about 0.6 against 0.8–0.9 for TWI). Wetlands in forest are brighter in HH, as expected from trunk–water double bounce. NWI emergent wetlands brighten more after rain than other open ground, but there are only 327 such cells. Switch to <em>NISAR HH wet − dry</em> and look along the valley floors.</li>
+      <li><b>Large flat water bodies.</b> The dark blue patches in the south-west and north-west are flat surfaces, likely ponds or reservoirs. Filling makes them perfectly flat, so they take the slope floor and the highest TWI.</li>
+      <li><b>Road crossings.</b> In the close-up, short straight blue lines cut through the road embankment. These are the breach paths standing in for culverts.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <div>Source DEM: <code>data/LiDAR/USGS_3DEP_1m/dem_1m_110100070301_buf200.tif</code> (EPSG:26915, 16,294 × 11,637 px). Boundary: <code>data/boundaries/pilot_huc12.gpkg</code>. Site: <code>data/StudySite/study_site.gpkg</code>.</div>
+    <div>NISAR: <code>data/SAR/NISAR/stack/desc_t012_summary_16m.tif</code> from <code>scripts/19_nisar_stack.py</code> (L2 GCOV Provisional, track 12 descending, frame 69). Land cover: NLCD 2021.</div>
+    <div>Display copies are downsampled; analysis runs on the full 1 m grid.</div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script type="module">
+// Page data is split: data/core.json (charts, outlines, base relief) + one image per 2D view and one grid per 3D view for each layer, fetched on first use.
+const D = await (await fetch("data/core.json")).json();
+for (const v of ["ws2d", "site2d"]) D[v].img = `data/img/${v}_elev.webp`;
+const loaded = {};
+function ensure(k) {
+  if (k === "elev") k = "twi";            // elevation mode still shows 1 m TWI on 3D hover
+  if (!loaded[k]) loaded[k] = Promise.all(["ws3d", "site3d"].map(v => fetch(`data/grid/${v}_${k}.json`).then(r => r.json()).then(g => { D[v][k] = g; })))
+    .then(() => { for (const v of ["ws2d", "site2d"]) D[v][k] = `data/img/${v}_${k}.webp`; });
+  return loaded[k];
+}
+const M = D.meta;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v, d = 0) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const H = D.hist, TR = D.twi_range;
+const LY = {
+  twi: { lab: "TWI 1 m", ramp: D.twi_ramp, lo: TR[0], hi: TR[1], unit: "", dp: 1,
+    hint: "TWI = ln(a / tan β) on the 1 m DEM, FD8 flow (exponent 1.0), shaded relief underneath. Darker blue = wetter." },
+  twi16: { lab: "TWI 16 m", ramp: D.ramps.twi16.hex, lo: D.ramps.twi16.lo, hi: D.ramps.twi16.hi, unit: "", dp: 1,
+    hint: "Same TWI method run on a 16 m DEM (the 1 m DEM averaged). Darker blue = wetter." },
+  hps: { lab: "Hydroperiod", ramp: D.ramps.hps.hex, lo: 0, hi: 365, unit: " days/yr", dp: 0,
+    hint: "Mean days per year saturated, 2003–2025, 16 m grid, 250 mm root-zone store, soil depth, Ksat and porosity from SSURGO. Darker = wet longer." },
+  hpu: { lab: "Hydroperiod", ramp: D.ramps.hpu.hex, lo: 0, hi: 365, unit: " days/yr", dp: 0,
+    hint: "Mean days per year saturated, 2003–2025, 16 m grid, 250 mm root-zone store, one soil (watershed median Ksat, porosity, 1 m depth) everywhere. Darker = wet longer." },
+  nhh: { lab: "NISAR HH", ramp: D.ramps.nhh.hex, lo: D.ramps.nhh.lo, hi: D.ramps.nhh.hi, unit: " dB", dp: 1,
+    hint: "L-band HH backscatter (γ⁰), mean of 9 descending passes, 27 Jun – 13 Oct 2026, 16 m grid. Brighter = stronger return: forest, and trunk–water double bounce in wet woods. Shown flat, without relief shading." },
+  nchg: { lab: "HH wet − dry", ramp: D.ramps.nchg.hex, lo: D.ramps.nchg.lo, hi: D.ramps.nchg.hi, unit: " dB", dp: 1,
+    hint: "Mean HH of 4 passes after rain minus mean of 4 dry-spell passes, 16 m grid. Blue-green = brighter after rain, brown = darker. The whole watershed sits about +0.4 dB; single cells still carry about ±1 dB of speckle." },
+  nhv: { lab: "NISAR HV", ramp: D.ramps.nhv.hex, lo: D.ramps.nhv.lo, hi: D.ramps.nhv.hi, unit: " dB", dp: 1,
+    hint: "L-band cross-polarised (HV) backscatter, mean of the same 9 passes, 16 m grid. Mostly volume scattering from branches and canopy, so it tracks how much woody vegetation there is. Brighter = more." },
+  nhvchg: { lab: "HV wet − dry", ramp: D.ramps.nhvchg.hex, lo: D.ramps.nhvchg.lo, hi: D.ramps.nhvchg.hi, unit: " dB", dp: 1,
+    hint: "Mean HV of the 4 passes after rain minus the 4 dry-spell passes, 16 m grid. Blue-green = brighter after rain. The watershed median is about +0.5 dB, partly wetter leaves and wood." },
+  nratio: { lab: "HH − HV", ramp: D.ramps.nratio.hex, lo: D.ramps.nratio.lo, hi: D.ramps.nratio.hi, unit: " dB", dp: 1,
+    hint: "HH minus HV (the HH/HV ratio in dB), all 9 passes, 16 m grid. High = surface or trunk–ground double bounce dominates over canopy volume scattering; a common flag for wet ground under trees. Darker purple = higher." },
+};
+let layer = "twi";
+try { const s = localStorage.getItem("lyr"); if (s in LY || s === "elev") layer = s; } catch (e) {}
+function decode(o) {
+  const b = atob(o.b64), out = [];
+  for (let j = 0; j < o.ny; j++) {
+    const row = new Array(o.nx);
+    if (o.u8) for (let i = 0; i < o.nx; i++) { const v = b.charCodeAt(j * o.nx + i); row[i] = v === 255 ? null : o.off + v / o.scale; }
+    else for (let i = 0; i < o.nx; i++) { const k = 2 * (j * o.nx + i), v = b.charCodeAt(k) | (b.charCodeAt(k + 1) << 8); row[i] = v === 65535 ? null : v / o.scale; }
+    out.push(row);
+  }
+  return out;
+}
+function grid3(d, k) { if (k === "twi") return d.twi; return d["_" + k] || (d["_" + k] = decode(d[k])); }
+
+document.getElementById("facts").innerHTML = [
+  [fmt(M.area_km2, 2) + " km²", "HUC12 area"],
+  ["none", "upstream HUC12s"],
+  [fmt(D.ws2d.zmin, 0) + "–" + fmt(D.ws2d.zmax, 0) + " m", "elevation range"],
+  [fmt(H.ws_med, 1), "watershed median TWI"],
+  [fmt(M.site_m2) + " m²", "site area"],
+  [fmt(M.site_elev[0], 1) + "–" + fmt(M.site_elev[1], 1) + " m", "site elevation"],
+  [fmt(H.site_med, 1), "site median TWI"],
+  ["9.3 ha", "drains into site"],
+  [fmt(D.auc.soil.find(p => p.res === 16).site_days) + " days/yr", "fen hydroperiod, 16 m"],
+].map(([b, s]) => `<div class="fact"><b>${b}</b><span>${s}</span></div>`).join("");
+document.getElementById("f-sitemed").textContent = fmt(H.site_med, 1);
+document.getElementById("f-pct").textContent = fmt(H.pct_site_med, 0) + "%";
+document.getElementById("f-p75").textContent = fmt(H.site_p75, 1);
+document.getElementById("f-p95").textContent = fmt(H.ws_p95, 1);
+
+function ramps() {
+  const L = LY[layer];
+  const r = (d) => L ? `${L.lab} ${L.lo > 0 || layer[0] !== "n" ? "" : "≤ "}${fmt(L.lo, L.lo % 1 ? 1 : 0)} <i style="background:linear-gradient(90deg,${L.ramp.join(",")})"></i> ≥ ${fmt(L.hi, L.hi % 1 ? 1 : 0)}${L.unit}` : `${fmt(d.zmin)} m <i></i> ${fmt(d.zmax)} m`;
+  document.getElementById("ramp1").innerHTML = r(D.ws2d);
+  document.getElementById("ramp2").innerHTML = r(D.site2d);
+  document.getElementById("lyrhint").textContent = L ? L.hint : "Bare-earth elevation with shaded relief.";
+  document.querySelectorAll("[data-l]").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === layer));
+}
+let showNwi = true;
+function wireTips(el, list) {
+  const tip = el.querySelector(".maptip");
+  el.querySelectorAll(".nwi path").forEach(p => {
+    p.addEventListener("pointermove", ev => {
+      const r = list[+p.dataset.i], b = el.getBoundingClientRect();
+      tip.innerHTML = `${r.type}<br><b>${r.code}</b> · ${fmt(r.ha, 2)} ha`; tip.hidden = false;
+      tip.style.left = Math.min(ev.clientX - b.left + 12, b.width - tip.offsetWidth - 4) + "px";
+      tip.style.top = Math.max(4, ev.clientY - b.top - tip.offsetHeight - 10) + "px";
+    });
+    p.addEventListener("pointerleave", () => { tip.hidden = true; });
+  });
+}
+function map2d(el, d, opts) {
+  const w = d.w, h = d.h, cs = d.cs;
+  // scale bar: pick a round length near 1/5 of width
+  const target = w * cs / 5, steps = [50, 100, 200, 500, 1000, 2000, 5000];
+  const L = steps.reduce((a, b) => Math.abs(b - target) < Math.abs(a - target) ? b : a);
+  const Lpx = L / cs, sx = w * 0.04, sy = h * 0.95, sw = w / 260;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="${opts.label}">`;
+  if (d.buf) svg += `<path d="${d.buf}" fill="none" stroke="${css("--buf")}" stroke-width="${sw*0.9}" stroke-dasharray="${sw*4} ${sw*3}"/>`;
+  if (d.huc && opts.showHuc) svg += `<path d="${d.huc}" fill="none" stroke="${css("--huc")}" stroke-width="${sw*1.3}"/>`;
+  if (opts.nwi && showNwi) {
+    const st = { veg: ["--nwi-veg", 0.25, ""], water: ["--nwi-water", 0.35, ""], river: ["--nwi-river", 0.12, "5 3"] };
+    svg += `<g class="nwi">` + opts.nwi.map((p, i) => { const [c, fo, da] = st[p.cls];
+      return `<path data-i="${i}" d="${p.d}" fill="${css(c)}" fill-opacity="${fo}" stroke="${css(c)}" stroke-width="1.8" ${da ? `stroke-dasharray="${da}"` : ""} fill-rule="evenodd"/>`; }).join("") + `</g>`;
+  }
+  svg += `<path d="${d.site}" fill="${css("--site")}" fill-opacity="${opts.siteFill}" stroke="${css("--site")}" stroke-width="${sw*opts.siteW}"/>`;
+  if (d.site_c) svg += `<circle cx="${d.site_c[0]}" cy="${d.site_c[1]}" r="${w/45}" fill="none" stroke="${css("--site")}" stroke-width="${sw*1.2}"/>
+     <text x="${d.site_c[0] + w/38}" y="${d.site_c[1] - w/50}" font-family="IBM Plex Mono, monospace" font-size="${w/48}" fill="#fff" stroke="#000" stroke-width="${w/600}" paint-order="stroke">Fen site</text>`;
+  svg += `<rect x="${sx}" y="${sy - h*0.012}" width="${Lpx}" height="${h*0.012}" fill="#fff" stroke="#000" stroke-width="${sw*0.5}"/>
+    <rect x="${sx}" y="${sy - h*0.012}" width="${Lpx/2}" height="${h*0.012}" fill="#000"/>
+    <text x="${sx}" y="${sy - h*0.022}" font-family="IBM Plex Mono, monospace" font-size="${w/45}" fill="#fff" stroke="#000" stroke-width="${w/600}" paint-order="stroke">${L >= 1000 ? L/1000 + " km" : L + " m"}</text>`;
+  svg += `</svg>`;
+  const ly = LY[layer];
+  el.innerHTML = `<div class="maptip" hidden></div><img src="${ly ? d[layer] : d.img}" width="${w}" height="${h}" alt="${ly ? ly.lab + " over shaded relief" : "Shaded-relief DEM"}">` + svg;
+}
+
+const CS = [[0,"#143478"],[0.1,"#215a7b"],[0.2,"#2e7b7f"],[0.3,"#38896c"],[0.4,"#409455"],[0.5,"#599f4a"],[0.6,"#81a854"],[0.7,"#a2b15a"],[0.8,"#b9b260"],[0.9,"#c3a46c"],[1,"#d8b49b"]];
+
+function surface(el, d, unitKm, lines, ve) {
+  const xs = Array.from({ length: d.nx }, (_, i) => +(i * d.dx).toFixed(4));
+  const ys = Array.from({ length: d.ny }, (_, j) => +(j * d.dx).toFixed(4));
+  const L = LY[layer], g = grid3(d, L ? layer : "twi");
+  const traces = [{
+    type: "surface", x: xs, y: ys, z: d.z, showscale: false,
+    ...(L ? { surfacecolor: g, colorscale: L.ramp.map((c, i) => [i / 10, c]), cmin: L.lo, cmax: L.hi, customdata: g } :
+            { colorscale: CS, cmin: d.zmin, cmax: d.zmax, customdata: g }),
+    lighting: { ambient: 0.55, diffuse: 0.8, roughness: 0.9, specular: 0.05, fresnel: 0.1 },
+    lightposition: { x: -1e5, y: 1e5, z: 6e4 },
+    hovertemplate: `x %{x:.2f} ${unitKm ? "km" : "m"}<br>y %{y:.2f} ${unitKm ? "km" : "m"}<br>z %{z:.1f} m<br>${L ? L.lab : "TWI 1 m"} %{customdata:.${L ? L.dp : 1}f}${L ? L.unit : ""}<extra></extra>`,
+    contours: { z: { show: false } }
+  }];
+  for (const [ln, color, width, name] of lines)
+    traces.push({ type: "scatter3d", mode: "lines", x: ln.x, y: ln.y, z: ln.z, name,
+      line: { color, width }, hoverinfo: "name", connectgaps: false });
+  const spanX = (d.nx - 1) * d.dx, spanY = (d.ny - 1) * d.dx, relief = d.zmax - d.zmin;
+  const zr = (v) => relief / (unitKm ? 1000 : 1) * v / Math.max(spanX, spanY);
+  const grid = css("--rule"), fg = css("--muted");
+  const ax = (t) => ({ title: { text: t, font: { size: 11, color: fg } }, color: fg, gridcolor: grid, zerolinecolor: grid, showbackground: false, tickfont: { size: 10, color: fg } });
+  const layout = {
+    margin: { l: 0, r: 0, t: 0, b: 0 }, paper_bgcolor: "rgba(0,0,0,0)", showlegend: false,
+    scene: { xaxis: ax(unitKm ? "east (km)" : "east (m)"), yaxis: ax(unitKm ? "north (km)" : "north (m)"), zaxis: ax("elevation (m)"),
+      aspectmode: "manual", aspectratio: { x: spanX / Math.max(spanX, spanY), y: spanY / Math.max(spanX, spanY), z: zr(ve) },
+      camera: { eye: { x: -0.9, y: -1.35, z: 0.85 } } }
+  };
+  Plotly.newPlot(el, traces, layout, { responsive: true, displaylogo: false, modeBarButtonsToRemove: ["toImage"] });
+  return (v) => Plotly.relayout(el, { "scene.aspectratio.z": zr(v) });
+}
+
+const ve = { ve1: 4, ve2: 3 };
+let s1 = null, s2 = null;
+for (const id of ["ve1", "ve2"]) {
+  const r = document.getElementById(id);
+  r.addEventListener("input", () => {
+    ve[id] = +r.value; document.getElementById(id + "v").textContent = r.value + "×";
+    const fn = id === "ve1" ? s1 : s2; if (fn) fn(ve[id]);
+  });
+}
+
+function hist() {
+  const svg = document.getElementById("hist");
+  const W = 900, Ht = 320, m = { l: 56, r: 20, t: 18, b: 44 };
+  const e = H.edges, n = H.ws.length, x0 = e[0], x1 = e[e.length - 1];
+  const ymax = Math.ceil(Math.max(...H.ws, ...H.site) * 100 / 5) * 5;
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = p => Ht - m.b - p * 100 / ymax * (Ht - m.t - m.b);
+  const ink = css("--muted"), rule = css("--rule"), site = css("--site"), fg = css("--fg");
+  let g = "";
+  for (let p = 0; p <= ymax; p += 5)
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(p/100)}" y2="${Y(p/100)}" stroke="${rule}" stroke-width="1"/><text x="${m.l - 8}" y="${Y(p/100) + 4}" text-anchor="end">${p}%</text>`;
+  for (let v = 0; v <= 20; v += 2)
+    g += `<text x="${X(v)}" y="${Ht - m.b + 18}" text-anchor="middle">${v}</text>`;
+  g += `<text x="${(m.l + W - m.r) / 2}" y="${Ht - 6}" text-anchor="middle">TWI = ln(a / tan β)</text>`;
+  g += `<text x="14" y="${(m.t + Ht - m.b) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(m.t + Ht - m.b) / 2})">share of cells</text>`;
+  // watershed: area
+  let pa = `M${X(e[0])},${Y(0)}`;
+  H.ws.forEach((v, i) => { pa += `L${X(e[i])},${Y(v)}L${X(e[i + 1])},${Y(v)}`; });
+  pa += `L${X(x1)},${Y(0)}Z`;
+  g += `<path d="${pa}" fill="${ink}" fill-opacity="0.28" stroke="${ink}" stroke-width="1.5" stroke-linejoin="round"/>`;
+  // site: step line
+  let pl = "";
+  H.site.forEach((v, i) => { pl += `${i ? "L" : "M"}${X(e[i])},${Y(v)}L${X(e[i + 1])},${Y(v)}`; });
+  g += `<path d="${pl}" fill="none" stroke="${site}" stroke-width="2" stroke-linejoin="round"/>`;
+  // medians
+  for (const [v, c, lab, dy] of [[H.ws_med, ink, "watershed median " + fmt(H.ws_med, 1), 0], [H.site_med, site, "site median " + fmt(H.site_med, 1), 18]])
+    g += `<line x1="${X(v)}" x2="${X(v)}" y1="${m.t}" y2="${Ht - m.b}" stroke="${c}" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text class="lab" x="${X(v) + 6}" y="${m.t + 12 + dy}">${lab}</text>`;
+  // direct labels
+  const iw = H.ws.indexOf(Math.max(...H.ws));
+  g += `<text class="lab" x="${X(e[iw]) - 8}" y="${Y(H.ws[iw]) - 6}" text-anchor="end">Watershed</text>`;
+  g += `<text class="lab" x="${X(11)}" y="${Y(Math.max(...H.site.slice(24, 32))) - 8}">Fen site</text>`;
+  g += `<line id="xh" x1="0" x2="0" y1="${m.t}" y2="${Ht - m.b}" stroke="${fg}" stroke-width="1" visibility="hidden"/>`;
+  g += `<rect id="hit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${Ht - m.t - m.b}" fill="transparent"/>`;
+  svg.innerHTML = g;
+  const tip = document.getElementById("tip"), xh = svg.querySelector("#xh"), wrap = document.getElementById("histwrap");
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), vx = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((vx - m.l) / (W - m.l - m.r) * n)));
+    xh.setAttribute("x1", X((e[i] + e[i + 1]) / 2)); xh.setAttribute("x2", X((e[i] + e[i + 1]) / 2)); xh.setAttribute("visibility", "visible");
+    tip.innerHTML = `TWI ${e[i]}–${e[i + 1]}<br>watershed ${fmt(H.ws[i] * 100, 2)}%<br>site ${fmt(H.site[i] * 100, 2)}%`;
+    tip.hidden = false;
+    const wr = wrap.getBoundingClientRect(), px = ev.clientX - wr.left + wrap.scrollLeft;
+    tip.style.left = Math.min(px + 12, wrap.scrollWidth - tip.offsetWidth - 4) + "px"; tip.style.top = "24px";
+  };
+  const hit = svg.querySelector("#hit");
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); });
+}
+
+const NWI_NAME = { veg: "Vegetated wetland (forested, shrub, emergent)", water: "Lake / pond", river: "Riverine" };
+document.getElementById("nwisum").innerHTML = "<tr><th>Class</th><th>Polygons</th><th>Hectares</th></tr>" +
+  ["veg", "water", "river"].map(k => `<tr><td><i class="sw" style="border-color:var(--nwi-${k})"></i>${NWI_NAME[k]}</td><td class="num">${D.nwi.summary[k].n}</td><td class="num">${fmt(D.nwi.summary[k].ha, 1)}</td></tr>`).join("");
+document.getElementById("nwisite").innerHTML = "<tr><th>Code</th><th>Type</th><th>Polygon hectares</th></tr>" +
+  [...D.nwi.site].sort((a, b) => b.ha - a.ha).map(r => `<tr><td><code>${r.code}</code></td><td>${r.type}</td><td class="num">${fmt(r.ha, 2)}</td></tr>`).join("");
+document.getElementById("shownwi").addEventListener("change", e => {
+  showNwi = e.target.checked;
+  document.querySelectorAll(".nwileg").forEach(x => x.hidden = !showNwi);
+  render();
+});
+function render() {
+  ramps();
+  map2d(document.getElementById("ws2d"), D.ws2d, { label: "Strother Creek watershed with boundaries", showHuc: true, siteFill: 0.9, siteW: 1, nwi: D.nwi.ws });
+  wireTips(document.getElementById("ws2d"), D.nwi.ws);
+  map2d(document.getElementById("site2d"), D.site2d, { label: "Fen site close-up", showHuc: true, siteFill: LY[layer] ? 0 : 0.15, siteW: 1.1, nwi: D.nwi.site });
+  wireTips(document.getElementById("site2d"), D.nwi.site);
+  hist(); aucChart(); cal(); smChart();
+  if (!window.Plotly) {
+    for (const id of ["ws3d", "site3d"]) document.getElementById(id).innerHTML = '<p class="note">The 3D viewer could not load. Reload the page to try again.</p>';
+    return;
+  }
+  s1 = surface("ws3d", D.ws3d, true, [[D.ws3d.huc, css("--huc"), 5, "HUC12 boundary"], [D.ws3d.site, css("--site"), 9, "Fen site"]], ve.ve1);
+  s2 = surface("site3d", D.site3d, false, [[D.site3d.site, css("--site"), 7, "Fen site"]], ve.ve2);
+}
+async function setLayer(l) {
+  layer = l; try { localStorage.setItem("lyr", l); } catch (e) {}
+  document.querySelectorAll("[data-l]").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === layer));
+  await Promise.all([ensure("twi"), ensure(l)]);
+  if (layer === l) render();
+}
+document.querySelectorAll("[data-l]").forEach(b => b.addEventListener("click", () => setLayer(b.dataset.l)));
+
+// AUC by grid cell size: one y axis, log2 x axis, four series, every series direct-labelled
+const SER = [
+  { k: "computed", name: "TWI on a coarser DEM", c: "--s1", dash: "" },
+  { k: "aggregated", name: "1 m TWI averaged up", c: "--s2", dash: "" },
+  { k: "soil", name: "Hydroperiod, SSURGO soil", c: "--s3", dash: "6 4" },
+  { k: "uni", name: "Hydroperiod, uniform soil", c: "--s4", dash: "6 4" },
+];
+document.getElementById("aucleg").innerHTML = SER.map(s =>
+  `<span><i class="sw" style="border-color:var(${s.c});${s.dash ? "border-top-style:dashed" : ""}"></i>${s.name}</span>`).join("");
+const RES = [1, 2, 4, 8, 16, 32];
+document.getElementById("auctbl").innerHTML = "<tr><th>Map</th>" + RES.map(r => `<th>${r} m</th>`).join("") + "</tr>" +
+  SER.map(s => `<tr><td>${s.name}</td>` + RES.map(r => { const p = D.auc[s.k].find(q => q.res === r); return `<td class="num">${p ? p.auc.toFixed(2) : "–"}</td>`; }).join("") + "</tr>").join("");
+function aucChart() {
+  const svg = document.getElementById("aucchart"), W = 900, Ht = 340, m = { l: 56, r: 210, t: 16, b: 46 };
+  const X = r => m.l + Math.log2(r) / 5 * (W - m.l - m.r), Y = a => Ht - m.b - (a - 0.2) / 0.8 * (Ht - m.t - m.b);
+  const ink = css("--muted"), rule = css("--rule"), fg = css("--fg"), panel = css("--panel");
+  let g = "";
+  for (let a = 0.2; a <= 1.001; a += 0.1)
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(a)}" y2="${Y(a)}" stroke="${rule}"/><text x="${m.l - 8}" y="${Y(a) + 4}" text-anchor="end">${a.toFixed(1)}</text>`;
+  g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0.5)}" y2="${Y(0.5)}" stroke="${ink}" stroke-dasharray="2 3"/><text x="${m.l + 6}" y="${Y(0.5) - 6}">0.5 = no skill</text>`;
+  for (const r of RES) g += `<text x="${X(r)}" y="${Ht - m.b + 18}" text-anchor="middle">${r} m</text>`;
+  g += `<text x="${(m.l + W - m.r) / 2}" y="${Ht - 6}" text-anchor="middle">grid cell size</text>`;
+  g += `<text x="14" y="${(m.t + Ht - m.b) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(m.t + Ht - m.b) / 2})">AUC, NWI vegetated wetland</text>`;
+  const pts = [], labY = [];
+  for (const s of SER) {
+    const P = D.auc[s.k], c = css(s.c);
+    g += `<path d="${P.map((p, i) => `${i ? "L" : "M"}${X(p.res)},${Y(p.auc)}`).join("")}" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="${s.dash}" stroke-linejoin="round"/>`;
+    P.forEach(p => { g += `<circle cx="${X(p.res)}" cy="${Y(p.auc)}" r="4.5" fill="${c}" stroke="${panel}" stroke-width="2"/>`; pts.push({ s, p }); });
+    const last = P[P.length - 1]; labY.push({ s, x: X(last.res), y: Y(last.auc) });
+  }
+  // direct labels at line ends, nudged apart so they never overlap
+  labY.sort((a, b) => a.y - b.y);
+  for (let i = 1; i < labY.length; i++) if (labY[i].y - labY[i - 1].y < 16) labY[i].y = labY[i - 1].y + 16;
+  for (const l of labY) g += `<text class="lab" x="${X(32) + 14}" y="${l.y + 4}">${l.s.name}</text>`;
+  g += pts.map((q, i) => `<circle data-i="${i}" cx="${X(q.p.res)}" cy="${Y(q.p.auc)}" r="12" fill="transparent" style="cursor:help"/>`).join("");
+  svg.innerHTML = g;
+  const tip = document.getElementById("auctip"), wrap = document.getElementById("aucwrap");
+  svg.querySelectorAll("circle[data-i]").forEach(el => {
+    el.addEventListener("pointermove", ev => {
+      const { s, p } = pts[+el.dataset.i];
+      tip.innerHTML = `${s.name} · ${p.res} m<br>AUC <b>${p.auc.toFixed(3)}</b>` +
+        (p.site_days != null ? `<br>fen median ${fmt(p.site_days)} days/yr` : "") + `<br>fen at ${fmt(p.site_pct, 0)}th percentile`;
+      tip.hidden = false;
+      const wr = wrap.getBoundingClientRect(), px = ev.clientX - wr.left + wrap.scrollLeft;
+      tip.style.left = Math.min(px + 12, wrap.scrollWidth - tip.offsetWidth - 4) + "px";
+      tip.style.top = Math.max(4, ev.clientY - wr.top - tip.offsetHeight - 10) + "px";
+    });
+    el.addEventListener("pointerleave", () => { tip.hidden = true; });
+  });
+}
+
+// Saturation calendar: rows = water years, columns = day from Oct 1, sequential single-hue ramp
+let calK = "soil";
+try { if (localStorage.getItem("calk") === "uni") calK = "uni"; } catch (e) {}
+const C = D.cal, SAT = D.ramps.hps.hex;
+document.getElementById("cal-n").textContent = C.soil_ncells;
+document.querySelector(".ramp i.sat").style.background = `linear-gradient(90deg,${SAT.join(",")})`;
+const rows = C.years.map((y, i) => i).filter(i => C[calK][i].filter(v => v != null).length >= 30);
+const MON = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"];
+const MDAY = [0, 31, 61, 92, 123, 151, 182, 212, 243, 273, 304, 335];
+let calGeo = null;
+function cal() {
+  const cv = document.getElementById("cal"), wrap = document.getElementById("calwrap");
+  document.querySelectorAll("[data-s]").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === calK));
+  const Wd = Math.max(640, wrap.clientWidth), m = { l: 44, r: 70, t: 22, b: 8 }, rh = 14;
+  const Ht = m.t + rows.length * rh + m.b, cw = (Wd - m.l - m.r) / 366, dpr = window.devicePixelRatio || 1;
+  cv.width = Wd * dpr; cv.height = Ht * dpr; cv.style.height = Ht + "px";
+  const x = cv.getContext("2d"); x.scale(dpr, dpr); x.clearRect(0, 0, Wd, Ht);
+  const ink = css("--muted"), nod = css("--rule");
+  x.font = "11px 'IBM Plex Mono', monospace"; x.fillStyle = ink; x.textBaseline = "middle";
+  MON.forEach((mo, i) => { x.textAlign = "left"; x.fillText(mo, m.l + MDAY[i] * cw + 2, m.t / 2); });
+  const col = v => { const t = v / 100 * 10, i = Math.min(9, Math.floor(t)); return [SAT[i], SAT[i + 1], t - i]; };
+  const mix = (a, b, f) => { const h = s => [1, 3, 5].map(k => parseInt(s.slice(k, k + 2), 16)), A = h(a), B = h(b);
+    return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * f)).join(",")})`; };
+  rows.forEach((yi, r) => {
+    const y0 = m.t + r * rh;
+    x.fillStyle = ink; x.textAlign = "right"; x.fillText(C.years[yi], m.l - 6, y0 + rh / 2);
+    const tot = C.P[yi].reduce((a, v) => a + (v || 0), 0);
+    x.textAlign = "left"; x.fillText(fmt(tot) + " mm", Wd - m.r + 6, y0 + rh / 2);
+    C[calK][yi].forEach((v, d) => {
+      x.fillStyle = v == null ? nod : mix(...col(v));
+      x.fillRect(m.l + d * cw, y0, Math.ceil(cw), rh - 2);
+    });
+  });
+  x.fillStyle = ink; x.textAlign = "left"; x.fillText("rain/yr", Wd - m.r + 6, m.t / 2);
+  calGeo = { m, rh, cw, Wd };
+}
+(function () {
+  const cv = document.getElementById("cal"), tip = document.getElementById("caltip"), wrap = document.getElementById("calwrap");
+  cv.addEventListener("pointermove", ev => {
+    if (!calGeo) return;
+    const b = cv.getBoundingClientRect(), px = (ev.clientX - b.left) / b.width * calGeo.Wd, py = ev.clientY - b.top;
+    const r = Math.floor((py - calGeo.m.t) / calGeo.rh), d = Math.floor((px - calGeo.m.l) / calGeo.cw);
+    if (r < 0 || r >= rows.length || d < 0 || d > 365) { tip.hidden = true; return; }
+    const yi = rows[r], v = C[calK][yi][d];
+    const dt = new Date(Date.UTC(C.years[yi] - 1, 9, 1 + d));
+    if (dt.getUTCFullYear() > C.years[yi] || (dt.getUTCFullYear() === C.years[yi] && dt.getUTCMonth() >= 9)) { tip.hidden = true; return; }
+    tip.innerHTML = `${dt.toISOString().slice(0, 10)}<br>` + (v == null ? "no data" : `saturated <b>${v}%</b> of fen<br>rain ${fmt(C.P[yi][d], 1)} mm`);
+    tip.hidden = false;
+    const wr = wrap.getBoundingClientRect(), lx = ev.clientX - wr.left + wrap.scrollLeft;
+    tip.style.left = Math.min(lx + 12, wrap.scrollWidth - tip.offsetWidth - 4) + "px";
+    tip.style.top = Math.max(4, ev.clientY - wr.top - tip.offsetHeight - 10) + "px";
+  });
+  cv.addEventListener("pointerleave", () => { tip.hidden = true; });
+  document.querySelectorAll("[data-s]").forEach(b => b.addEventListener("click", () => {
+    calK = b.dataset.s; try { localStorage.setItem("calk", calK); } catch (e) {} cal();
+  }));
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(cal, 150); });
+})();
+// Soil-moisture check: observed vs model store, each scaled 0-100 over its own range; one y axis
+const SM = D.sm, SM0 = new Date(SM.start + "T00:00:00Z");
+const smDate = i => new Date(SM0.getTime() + i * 864e5);
+const smWY = i => { const d = smDate(i); return d.getUTCFullYear() + (d.getUTCMonth() >= 9 ? 1 : 0); };
+let smYear = "all";
+try { const s = localStorage.getItem("smyear"); if (s) smYear = s; } catch (e) {}
+{
+  const sel = document.getElementById("smyear"), ys = [...new Set(SM.obs.map((_, i) => smWY(i)))];
+  sel.innerHTML = `<option value="all">All, 2010–2025</option>` + ys.map(y => `<option value="${y}">${y} (Oct ${y - 1} – Sep ${y})</option>`).join("");
+  if (![...sel.options].some(o => o.value === smYear)) smYear = "all";
+  sel.value = smYear;
+  sel.addEventListener("change", () => { smYear = sel.value; try { localStorage.setItem("smyear", smYear); } catch (e) {} smChart(); });
+}
+const sc = SM.score, pct = v => (v == null ? "–" : (v > 0 ? "+" : "") + fmt(v, 0));
+document.getElementById("smscore").innerHTML = "<tr><th>Model series</th><th>r</th><th>r, no seasons</th><th>Wet-up error</th><th>Dry-out error</th></tr>" +
+  [["S_huc", "Store, watershed radar rain"], ["S_station", "Store, station rain gauge"], ["site_sat_soil", "Fen saturated share, SSURGO"], ["site_sat_uni", "Fen saturated share, uniform soil"]]
+  .map(([k, n]) => `<tr><td>${n}</td><td class="num">${sc[k].r.toFixed(2)}</td><td class="num">${sc[k].r_anom.toFixed(2)}</td><td class="num">${pct(sc[k].wetup_median_diff_days)} d</td><td class="num">${pct(sc[k].drydown_median_diff_days)} d</td></tr>`).join("");
+document.getElementById("smsweep").innerHTML = "<tr><th>Store</th><th>r</th><th>r, no seasons</th><th>Wet-up error</th><th>Dry-out error</th></tr>" +
+  Object.entries(SM.sweep).map(([k, v]) => `<tr${k === "250" ? ' style="font-weight:600"' : ""}><td>${k} mm${k === "250" ? " (used)" : ""}</td><td class="num">${v.r.toFixed(2)}</td><td class="num">${v.r_anom.toFixed(2)}</td><td class="num">${pct(v.wetup_median_diff_days)} d</td><td class="num">${pct(v.drydown_median_diff_days)} d</td></tr>`).join("");
+function smChart() {
+  const svg = document.getElementById("smchart"), W = 900, Ht = 300, m = { l: 48, r: 16, t: 14, b: 40 };
+  const idx = SM.obs.map((_, i) => i).filter(i => smYear === "all" || smWY(i) === +smYear);
+  const i0 = idx[0], i1 = idx[idx.length - 1];
+  const X = i => m.l + (i - i0) / Math.max(1, i1 - i0) * (W - m.l - m.r), Y = v => Ht - m.b - v / 100 * (Ht - m.t - m.b);
+  const ink = css("--muted"), rule = css("--rule"), fg = css("--fg");
+  let g = "";
+  for (let v = 0; v <= 100; v += 25) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${rule}"/><text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  g += `<text x="12" y="${(m.t + Ht - m.b) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(m.t + Ht - m.b) / 2})">relative wetness</text>`;
+  // x ticks: water years when showing all, months for a single year
+  for (const i of idx) {
+    const d = smDate(i);
+    if (d.getUTCDate() !== 1) continue;
+    if (smYear === "all" ? d.getUTCMonth() === 9 && smWY(i) % 2 === 0 : true)
+      g += `<line x1="${X(i)}" x2="${X(i)}" y1="${Ht - m.b}" y2="${Ht - m.b + 4}" stroke="${ink}"/><text x="${X(i)}" y="${Ht - m.b + 18}" text-anchor="middle">${smYear === "all" ? "WY" + smWY(i) : d.toLocaleString("en-US", { month: "short", timeZone: "UTC" })}</text>`;
+  }
+  const path = k => { let s = "", pen = false; for (const i of idx) { const v = SM[k][i]; if (v == null) { pen = false; continue; } s += `${pen ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; } return s; };
+  const sw = smYear === "all" ? 1.2 : 2;
+  g += `<path d="${path("obs")}" fill="none" stroke="${css("--s1")}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+  g += `<path d="${path("mod")}" fill="none" stroke="${css("--s2")}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+  g += `<line id="smxh" y1="${m.t}" y2="${Ht - m.b}" stroke="${fg}" visibility="hidden"/><rect id="smhit" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${Ht - m.t - m.b}" fill="transparent"/>`;
+  svg.innerHTML = g;
+  const tip = document.getElementById("smtip"), wrap = document.getElementById("smwrap"), xh = svg.querySelector("#smxh");
+  svg.querySelector("#smhit").addEventListener("pointermove", ev => {
+    const r = svg.getBoundingClientRect(), vx = (ev.clientX - r.left) / r.width * W;
+    const i = Math.round(i0 + (vx - m.l) / (W - m.l - m.r) * (i1 - i0));
+    if (i < i0 || i > i1) return;
+    xh.setAttribute("x1", X(i)); xh.setAttribute("x2", X(i)); xh.setAttribute("visibility", "visible");
+    const mm = v => v == null ? "no data" : v + " mm";
+    tip.innerHTML = `${smDate(i).toISOString().slice(0, 10)}<br>observed ${mm(SM.obs_mm[i])} (${SM.obs[i] ?? "–"})<br>model store ${mm(SM.mod_mm[i])} (${SM.mod[i] ?? "–"})<br>station rain ${SM.rain[i] == null ? "–" : fmt(SM.rain[i], 1) + " mm"}`;
+    tip.hidden = false;
+    const wr = wrap.getBoundingClientRect(), px = ev.clientX - wr.left + wrap.scrollLeft;
+    tip.style.left = Math.min(px + 12, wrap.scrollWidth - tip.offsetWidth - 4) + "px"; tip.style.top = "16px";
+  });
+  svg.querySelector("#smhit").addEventListener("pointerleave", () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); });
+}
+const NS = D.nisar;
+document.getElementById("nisarpass").innerHTML = "<tr><th>Pass (UTC)</th><th>Group</th><th>Rain, 7 d</th><th>Soil store</th><th>HH</th><th>HV</th></tr>" +
+  NS.passes.map(p => `<tr><td>${p.date}</td><td>${p.g}</td><td class="num">${fmt(p.rain7, 1)} mm</td><td class="num">${p.S} mm</td><td class="num">${fmt(p.hh, 2)} dB</td><td class="num">${fmt(p.hv, 2)} dB</td></tr>`).join("");
+const NROW = [["HH_all", "NISAR HH, all dates"], ["HV_all", "NISAR HV, all dates"], ["HH_change", "NISAR HH, wet − dry"], ["HV_change", "NISAR HV, wet − dry"],
+  ["twi_16m", "TWI 16 m"], ["hydroperiod_16m_unisoil", "Hydroperiod 16 m, uniform soil"]];
+document.getElementById("nisarauc").innerHTML = `<tr><th>Layer</th><th>Forest (${fmt(NS.auc.forest.n)} wetland cells)</th><th>Open (${fmt(NS.auc.open.n)})</th></tr>` +
+  NROW.map(([k, n]) => `<tr><td>${n}</td><td class="num">${NS.auc.forest.v[k].toFixed(2)}</td><td class="num">${NS.auc.open.v[k].toFixed(2)}</td></tr>`).join("");
+const FP = NS.fen.percentile_among_open, FM = NS.fen.median;
+document.getElementById("nisarfen").innerHTML = `<b>Barton Fen</b> (${NS.fen.n_cells} cells at 16 m): median HH ${fmt(FM.HH_all, 1)} dB, brighter than ${fmt(FP.HH_all)}% of non-wetland open ground. Its wet − dry change (+${fmt(FM.HH_change, 2)} dB) is lower than ${fmt(100 - FP.HH_change)}% of open ground, so the fen barely responds to rain. That fits a groundwater-fed fen, but 34 cells are close to the speckle limit.`;
+await Promise.all([ensure("twi"), ensure(layer)]);
+render();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>
+
+</body>
+</html>
