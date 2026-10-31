@@ -19,7 +19,7 @@ The viewer is served by GitHub Pages from `index.html` at the repository root. T
 | `svv`, `svh` | Sentinel-1 C-band VV / VH (OPERA RTC-S1, 30 m), mean of 12 summer 2026 passes (dB) |
 | `svvchg`, `wvvchg` | Sentinel-1 VV wet − dry, summer (5 vs 3 passes) and winter / leaf-off (1 vs 3 passes) |
 | `rft`, `rfa` | Random-forest probability of NWI wetland, terrain only / terrain + radar (spatial 3 km block cross-validation) |
-| `rfd` | Terrain + radar model vs NWI: 1 model wet not NWI, 2 NWI model dry, 3 both wet |
+| `rfw` | Terrain + radar model as a wetland map: 2 = wet at the F1-optimal cut-off (p ≥ 0.61), 1 = wet only at the ROC (Youden) cut-off (p ≥ 0.13), 0 = dry; NWI drawn on top |
 
 Sources: USGS 3DEP 1 m DEM; NWI (US Fish & Wildlife Service); NCEP Stage IV precipitation; gridMET reference ET; NOAA USCRN Salem 10 W soil moisture; NLCD 2021; NISAR L2 GCOV Provisional (NASA/ASF); Sentinel-1 OPERA L2 RTC-S1 (NASA JPL/ASF; contains Copernicus Sentinel data 2026). Display copies are downsampled; the analysis runs on full-resolution rasters outside this repository.
 
