@@ -4,6 +4,8 @@ Interactive viewer for the Missouri wetland-mapping pilot: HUC12 110100070301 (S
 
 **▶ Open the viewer: https://shanem73.github.io/MO-wetland2026/**
 
+**▶ Project overview for presentations: https://shanem73.github.io/MO-wetland2026/overview.html**: a nine-step 3D walk-through (question, study area, data, method, validation, results, Barton Fen, next steps). Arrow keys step through it; F toggles full-screen presentation mode.
+
 The viewer is served by GitHub Pages from `index.html` at the repository root. The page loads `data/core.json` (charts, outlines, relief) and then each map layer's files on first use:
 
 - `data/img/{ws2d,site2d}_<layer>.webp` — 2D map images (watershed at 8 m display, fen close-up at 1 m)
