@@ -70,6 +70,8 @@ main { max-width: 1440px; margin: 0 auto; padding: 16px max(16px, env(safe-area-
 .plane.hl .frame { border-color: var(--accent); border-width: 2px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .plane.dim { filter: saturate(.25) brightness(1.05); }
 .plane.hide { opacity: 0 !important; }
+.plane.peel { opacity: .05; }
+.plane.sel .frame { border-color: var(--accent); border-width: 2px; box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 45%, transparent); }
 .slab { position: absolute; inset: 6% 4%; border-radius: 8px; transition: transform 1s cubic-bezier(.2,.7,.2,1), opacity .7s; transform-style: preserve-3d;
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 85%, transparent), color-mix(in srgb, var(--output) 70%, transparent));
   display: grid; place-items: center; text-align: center; color: #fff; font-family: var(--display); box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 50%, transparent); }
@@ -90,7 +92,7 @@ main { max-width: 1440px; margin: 0 auto; padding: 16px max(16px, env(safe-area-
 .stagebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); }
 .stagebar .ctl { display: flex; gap: 6px; }
 .stagebar button { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
-.info { position: absolute; right: 10px; bottom: 10px; max-width: min(340px, 70%); background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+.info { position: absolute; right: 10px; top: 10px; max-width: min(340px, 70%); background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--accent);
   border-radius: 4px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; z-index: 3; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
 .info[hidden] { display: none; }
 .info h4 { margin: 0 0 4px; font-family: var(--display); font-size: 15px; }
@@ -178,7 +180,7 @@ body.present .lead { font-size: 20px; }
       <div class="info" id="info" hidden></div>
     </div>
     <div class="stagebar">
-      <span id="stagecap">Real map layers of the 103 km² watershed, stacked. Drag to turn; click a layer name for details.</span>
+      <span id="stagecap">Real map layers of the 103 km² watershed, stacked. Drag to turn; click a layer name to bring it to view (click again or Esc to restore).</span>
       <span class="ctl"><button type="button" id="spin" aria-pressed="true">Pause rotation</button><button type="button" id="reset">Reset view</button></span>
     </div>
   </div>
@@ -364,12 +366,26 @@ for (const l of [...L].reverse()) {
   b.addEventListener("mouseleave", () => { if (!cur.view.hl.includes(l.id)) planes[l.id].classList.remove("hl"); });
   rail.appendChild(b); railBtns[l.id] = b;
 }
+let selId = null;
+function applySel() {
+  const zs = selId && !planes[selId].classList.contains("hide") ? +planes[selId].dataset.z : null;
+  for (const l of L) {
+    const p = planes[l.id], above = zs != null && !p.classList.contains("hide") && l.id !== selId && +p.dataset.z > zs;
+    p.classList.toggle("peel", above);
+    p.classList.toggle("sel", l.id === selId);
+    if (!p.classList.contains("hide")) p.style.transform = `translateZ(${+p.dataset.z + (l.id === selId ? 18 : 0)}px)`;
+  }
+  slab.style.opacity = cur.view.slab && zs == null ? 1 : 0;
+  Object.values(railBtns).forEach(b => b.classList.remove("hl")); if (selId) railBtns[selId].classList.add("hl");
+}
+function clearSel() { selId = null; info.hidden = true; applySel(); }
 function showInfo(l) {
+  if (selId === l.id) { clearSel(); return; }
+  selId = l.id; applySel();
   info.hidden = false;
   info.innerHTML = `<button class="x" type="button" aria-label="Close">×</button><h4>${l.name}</h4><div class="muted" style="font-size:12px">${FAM[l.fam][0]}</div>
     <dl><dt>Source</dt><dd>${l.src}</dd><dt>Grid</dt><dd>${l.res}</dd><dt>Measures</dt><dd>${l.what}</dd><dt>Found</dt><dd>${l.found}</dd></dl>`;
-  info.querySelector(".x").onclick = () => { info.hidden = true; };
-  Object.values(railBtns).forEach(b => b.classList.remove("hl")); railBtns[l.id].classList.add("hl");
+  info.querySelector(".x").onclick = clearSel;
 }
 
 /* ---------- view state ---------- */
@@ -432,8 +448,8 @@ function go(i, push = true) {
     <button type="button" class="primary" id="next" ${idx === STEPS.length - 1 ? "disabled" : ""}>${idx < STEPS.length - 1 ? STEPS[idx + 1].tab : "End"} →</button></div>`;
   card.querySelector("#prev").onclick = () => go(idx - 1); card.querySelector("#next").onclick = () => go(idx + 1);
   if (cur.after) cur.after();
-  info.hidden = true; Object.values(railBtns).forEach(b => b.classList.remove("hl"));
-  setView(cur.view);
+  selId = null; info.hidden = true;
+  setView(cur.view); applySel();
   if (push) history.replaceState(null, "", "#step-" + (idx + 1));
 }
 
@@ -526,7 +542,7 @@ addEventListener("keydown", e => {
   if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && document.body.classList.contains("present"))) { e.preventDefault(); go(idx + 1); }
   else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(idx - 1); }
   else if (e.key === "f" || e.key === "F") togglePresent();
-  else if (e.key === "Escape") info.hidden = true;
+  else if (e.key === "Escape") clearSel();
 });
 const presBtn = document.getElementById("present");
 function togglePresent() {
