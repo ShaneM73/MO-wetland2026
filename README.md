@@ -2,7 +2,9 @@
 
 Interactive viewer for the Missouri wetland-mapping pilot: HUC12 110100070301 (Strother Creek, Iron County) and the Barton Fen study site.
 
-Open it through GitHub Pages (`index.html` at the repository root). The page loads `data/core.json` (charts, outlines, relief) and then each map layer's files on first use:
+**▶ Open the viewer: https://shanem73.github.io/MO-wetland2026/**
+
+The viewer is served by GitHub Pages from `index.html` at the repository root. The page loads `data/core.json` (charts, outlines, relief) and then each map layer's files on first use:
 
 - `data/img/{ws2d,site2d}_<layer>.webp` — 2D map images (watershed at 8 m display, fen close-up at 1 m)
 - `data/grid/{ws3d,site3d}_<layer>.json` — 3D surface colours (watershed 30 m, close-up 2 m)
