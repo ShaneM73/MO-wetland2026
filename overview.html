@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wetland pilot overview</title>
+<meta name="description" content="Interactive overview of the Strother Creek wetland-mapping pilot: question, study area, data, method, validation, results, the Barton Fen case and next steps.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Presentation infographic: a 3D stack of the project's real map layers (left) that changes with each step of the
+   story (right). Steps: arrow keys, the numbered tabs, or Prev / Next. Drag the stack to turn it. */
+:root {
+  --bg: #f3f5f2; --panel: #ffffff; --fg: #1c2622; --muted: #5d6b64; --rule: #d5ddd7; --faint: #e8ede9;
+  --accent: #1f6f5c; --accent-2: #71ac9c; --warm: #c45a1c; --site: #e0218a; --stage: #e9eee9; --stage-2: #dde5df;
+  --good: #1f7a4a; --bad: #b3261e;
+  --terrain: #2e7b7f; --radar: #6250d6; --optical: #4f8a2b; --thermal: #c45a1c; --soil: #8a6a2c; --label: #eb6834; --output: #1f5fa8;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33; --faint: #222c27;
+  --accent: #5cc3a4; --accent-2: #3d7d6b; --warm: #e9844a; --site: #ff5cbf; --stage: #18201c; --stage-2: #0f1512;
+  --good: #5cc38a; --bad: #ff6b5e;
+  --terrain: #5bb3b6; --radar: #9085e9; --optical: #8cc46a; --thermal: #e9844a; --soil: #d0a65a; --label: #f0844f; --output: #6aa7e8; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33; --faint: #222c27;
+  --accent: #5cc3a4; --accent-2: #3d7d6b; --warm: #e9844a; --site: #ff5cbf; --stage: #18201c; --stage-2: #0f1512;
+  --good: #5cc38a; --bad: #ff6b5e;
+  --terrain: #5bb3b6; --radar: #9085e9; --optical: #8cc46a; --thermal: #e9844a; --soil: #d0a65a; --label: #f0844f; --output: #6aa7e8; color-scheme: dark }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.5; }
+a { color: var(--accent); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--rule); }
+.topin { max-width: 1440px; margin: 0 auto; padding: 10px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 8px; }
+.titlerow { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.15rem, 2.1vw, 1.55rem); margin: 0; letter-spacing: -0.01em; }
+.links { display: flex; gap: 14px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+.links button { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+.links button[aria-pressed="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.tabs button { flex: 0 0 auto; display: flex; gap: 6px; align-items: baseline; background: none; border: 0; border-bottom: 2px solid transparent; padding: 4px 8px; cursor: pointer; color: var(--muted); font-size: 14px; white-space: nowrap; }
+.tabs button b { font-family: var(--mono); font-weight: 500; font-size: 12px; }
+.tabs button[aria-current="step"] { color: var(--fg); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--fg); }
+
+main { max-width: 1440px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-left, 0px)) 32px;
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.stagewrap { position: sticky; top: 112px; display: grid; gap: 8px; }
+@media (max-width: 980px) { .stagewrap { position: relative; top: 0; } }
+.stage { position: relative; height: min(70vh, 660px); min-height: 360px; border-radius: 6px; overflow: hidden; cursor: grab; touch-action: none;
+  background: radial-gradient(ellipse at 50% 40%, var(--stage), var(--stage-2)); border: 1px solid var(--rule); perspective: 1900px; perspective-origin: 50% 35%; user-select: none; }
+.stage.drag { cursor: grabbing; }
+@media (max-width: 980px) { .stage { height: 56vh; } }
+.scene { position: absolute; left: 50%; top: 54%; width: var(--pw); height: calc(var(--pw) / var(--ar)); transform-style: preserve-3d;
+  transition: transform 1s cubic-bezier(.2,.7,.2,1); }
+.scene.nodelay { transition: none; }
+.spinner { position: absolute; inset: 0; transform-style: preserve-3d; }
+.plane { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 1s cubic-bezier(.2,.7,.2,1), opacity .7s, filter .4s; pointer-events: none; }
+.plane img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; -webkit-user-drag: none; }
+.plane .frame { position: absolute; inset: 0; border: 1px solid color-mix(in srgb, var(--fg) 18%, transparent); border-radius: 3px; background: color-mix(in srgb, var(--panel) 10%, transparent); }
+.plane.hl .frame { border-color: var(--accent); border-width: 2px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.plane.dim { filter: saturate(.25) brightness(1.05); }
+.plane.hide { opacity: 0 !important; }
+.slab { position: absolute; inset: 6% 4%; border-radius: 8px; transition: transform 1s cubic-bezier(.2,.7,.2,1), opacity .7s; transform-style: preserve-3d;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 85%, transparent), color-mix(in srgb, var(--output) 70%, transparent));
+  display: grid; place-items: center; text-align: center; color: #fff; font-family: var(--display); box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 50%, transparent); }
+.slab b { font-size: calc(var(--pw) * 0.055); display: block; }
+.slab span { font-family: var(--mono); font-size: calc(var(--pw) * 0.026); opacity: .9; }
+.marker { position: absolute; width: 0; height: 0; transition: transform 1s cubic-bezier(.2,.7,.2,1), opacity .6s; transform-style: preserve-3d; }
+.marker i { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--site); box-shadow: 0 0 0 2px #fff; }
+.marker i::after { content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 2px solid var(--site); animation: ping 1.8s ease-out infinite; }
+@keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .marker i::after { animation: none; } .scene, .plane, .slab, .marker { transition: none; } }
+
+.rail { position: absolute; left: 10px; top: 10px; display: grid; gap: 3px; max-height: calc(100% - 20px); overflow: auto; z-index: 2; }
+.rail button { display: flex; align-items: center; gap: 7px; background: color-mix(in srgb, var(--panel) 82%, transparent); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 2px 8px 2px 6px; font-size: 12.5px; cursor: pointer; text-align: left; transition: opacity .4s, background .2s; }
+.rail button i { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.rail button.off { opacity: .35; }
+.rail button:hover, .rail button.hl { background: var(--panel); border-color: var(--accent); }
+.stagebar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.stagebar .ctl { display: flex; gap: 6px; }
+.stagebar button { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
+.info { position: absolute; right: 10px; bottom: 10px; max-width: min(340px, 70%); background: var(--panel); border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  border-radius: 4px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; z-index: 3; box-shadow: 0 4px 18px rgba(0,0,0,.12); }
+.info[hidden] { display: none; }
+.info h4 { margin: 0 0 4px; font-family: var(--display); font-size: 15px; }
+.info dl { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; margin: 6px 0 0; }
+.info dt { font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.info dd { margin: 0; }
+.info .x { position: absolute; right: 6px; top: 4px; background: none; border: 0; cursor: pointer; color: var(--muted); font-size: 16px; }
+
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 18px 20px 20px; display: grid; gap: 14px; min-width: 0; }
+.card .num { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+.card h2 { font-family: var(--display); font-size: clamp(1.3rem, 2.2vw, 1.75rem); margin: 0; line-height: 1.2; text-wrap: balance; }
+.card p { margin: 0; }
+.lead { font-size: 17px; }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+.chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.chip { border: 1px solid var(--rule); border-radius: 4px; padding: 8px 10px; display: grid; gap: 1px; background: var(--bg); }
+.chip b { font-family: var(--mono); font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+.chip span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+ul.tight { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.flow { width: 100%; height: auto; }
+.chart { width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--body); font-size: 12.5px; fill: var(--fg); }
+.chart .ax text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.chart .grid line { stroke: var(--rule); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th { text-align: left; font-family: var(--mono); font-weight: 500; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--rule); padding: 4px 6px; }
+td { padding: 4px 6px; border-bottom: 1px solid var(--faint); }
+td.n { font-family: var(--mono); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.up { color: var(--good); } .dn { color: var(--bad); }
+.three { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.box { border: 1px solid var(--rule); border-top: 3px solid var(--accent); border-radius: 4px; padding: 10px 12px; background: var(--bg); display: grid; gap: 4px; }
+.box h3 { margin: 0; font-family: var(--display); font-size: 15px; }
+.box p { font-size: 14px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pair figure { margin: 0; display: grid; gap: 4px; }
+.pair img { width: 100%; border-radius: 3px; border: 1px solid var(--rule); display: block; }
+.pair figcaption { font-size: 12px; color: var(--muted); }
+.nav { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.nav button { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.nav button.primary { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+.nav button:disabled { opacity: .4; cursor: default; }
+.tip { position: fixed; pointer-events: none; z-index: 50; background: var(--fg); color: var(--bg); font-size: 12.5px; padding: 5px 8px; border-radius: 3px; max-width: 280px; line-height: 1.35; }
+.tip[hidden] { display: none; }
+.legendrow { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); align-items: center; }
+.legendrow i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legendrow s { display: inline-block; width: 18px; border-top: 2px dashed var(--muted); margin-right: 5px; vertical-align: 3px; text-decoration: none; }
+
+/* presentation mode: bigger text, no page chrome */
+@media (max-width: 640px) {
+  .top { position: static; }
+  .rail button.off { display: none; }
+  .rail button { font-size: 11px; padding: 1px 6px 1px 4px; }
+  .rail { gap: 2px; }
+}
+body.present .top .links .hidep { display: none; }
+body.present main { max-width: none; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+body.present .stage { height: calc(100vh - 150px); }
+body.present .card { font-size: 18px; }
+body.present .lead { font-size: 20px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="topin">
+    <div class="titlerow">
+      <div>
+        <div class="eyebrow">Missouri wetland mapping · phase 0 pilot · project overview</div>
+        <h1>Mapping saturated wetlands and fens from free remote sensing: Strother Creek, Missouri Ozarks</h1>
+      </div>
+      <div class="links">
+        <a class="hidep" href="index.html">Open the data viewer →</a>
+        <button type="button" id="present" aria-pressed="false" title="Full screen, larger text (F)">Present</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Steps"></nav>
+  </div>
+</div>
+
+<main>
+  <div class="stagewrap">
+    <div class="stage" id="stage" aria-label="3D stack of the project's map layers. Drag to turn it; the layer list on the left selects a layer.">
+      <div class="scene" id="scene"><div class="spinner" id="spinner"></div></div>
+      <div class="rail" id="rail" aria-label="Layers in the stack"></div>
+      <div class="info" id="info" hidden></div>
+    </div>
+    <div class="stagebar">
+      <span id="stagecap">Real map layers of the 103 km² watershed, stacked. Drag to turn; click a layer name for details.</span>
+      <span class="ctl"><button type="button" id="spin" aria-pressed="true">Pause rotation</button><button type="button" id="reset">Reset view</button></span>
+    </div>
+  </div>
+  <article class="card" id="card" aria-live="polite"></article>
+</main>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const N = {"cells":383184,"share":0.0248,"blocks":20,"wetland":9484,"edge_share":0.807,"sets":{"twi":{"ap":0.186,"ci":[0.156,0.224],"ne":0.032,"auc":0.844,"open":0.671},"topo":{"ap":0.465,"ci":[0.377,0.546],"ne":0.33,"auc":0.967,"open":0.743},"topo_nisar":{"ap":0.523,"ci":[0.441,0.595],"ne":0.412,"auc":0.969,"open":0.823},"topo_s1":{"ap":0.544,"ci":[0.456,0.617],"ne":0.493,"auc":0.967,"open":0.787},"topo_all":{"ap":0.534,"ci":[0.447,0.609],"ne":0.474,"auc":0.967,"open":0.802},"radar":{"ap":0.112,"ci":[0.074,0.156],"ne":0.04,"auc":0.786,"open":0.561},"topo_hand":{"ap":0.6,"ci":[0.507,0.669],"ne":0.364,"auc":0.983,"open":0.796},"topo_gw":{"ap":0.637,"ci":[0.547,0.703],"ne":0.477,"auc":0.984,"open":0.849},"all_gw":{"ap":0.695,"ci":[0.59,0.763],"ne":0.627,"auc":0.986,"open":0.878},"all_gw_th":{"ap":0.682,"ci":[0.575,0.759],"ne":0.594,"auc":0.987,"open":0.888},"all_gw_eco":{"ap":0.658,"ci":[0.555,0.728],"ne":0.524,"auc":0.986,"open":0.878},"all_gw_s2":{"ap":0.722,"ci":[0.614,0.797],"ne":0.676,"auc":0.988,"open":0.907},"full":{"ap":0.687,"ci":[0.582,0.763],"ne":0.591,"auc":0.987,"open":0.895}},"paired":{"topo_all - topo":{"diff":0.07,"ci":[0.024,0.106],"p_le_0":0.0},"topo_hand - topo":{"diff":0.135,"ci":[0.075,0.174],"p_le_0":0.0},"topo_gw - topo_hand":{"diff":0.037,"ci":[-0.003,0.072],"p_le_0":0.032},"all_gw - topo_gw":{"diff":0.058,"ci":[0.035,0.073],"p_le_0":0.0},"all_gw - topo_hand":{"diff":0.095,"ci":[0.051,0.125],"p_le_0":0.001},"all_gw_th - all_gw":{"diff":-0.012,"ci":[-0.028,0.001],"p_le_0":0.962},"all_gw_eco - all_gw":{"diff":-0.037,"ci":[-0.053,-0.016],"p_le_0":0.997},"all_gw_s2 - all_gw":{"diff":0.027,"ci":[0.015,0.038],"p_le_0":0.001},"full - all_gw_s2":{"diff":-0.035,"ci":[-0.056,-0.01],"p_le_0":0.994},"topo_nisar - topo":{"diff":0.059,"ci":[0.025,0.087],"p_le_0":0.0},"topo_s1 - topo":{"diff":0.079,"ci":[0.031,0.119],"p_le_0":0.0}},"random_cv":{"set":"all_gw_s2","ap":0.824,"auc":0.9941,"spatial_ap":0.722,"spatial_auc":0.9878},"learners":{"random_forest":{"ap":0.722,"ci":[0.614,0.797],"ne":0.676,"fen":null},"hist_gradient_boosting":{"ap":0.723,"ci":[0.618,0.797],"ne":0.694,"fen":0.443},"logistic_regression":{"ap":0.571,"ci":[0.467,0.679],"ne":0.393,"fen":0.945},"unet":{"ap":0.609,"ci":[0.528,0.672],"ne":0.566,"fen":0.0},"pixel":{"ap":0.601,"ci":[0.496,0.681],"ne":0.548,"fen":0.228}},"emergent":{"topo":{"std":0.72,"held":0.734,"ap":0.0303,"chance":0.0153,"fen":95.2},"topo_hand":{"std":0.767,"held":0.781,"ap":0.0352,"chance":0.0153,"fen":94.2},"all_gw":{"std":0.837,"held":0.842,"ap":0.0664,"chance":0.0153,"fen":93.1},"all_gw_s2":{"std":0.885,"held":0.901,"ap":0.0949,"chance":0.0153,"fen":95.1}},"fen_prob":{"topo":0.62,"topo_all":0.356,"topo_hand":0.38,"all_gw":0.216,"all_gw_s2":0.356,"full":0.306},"thr":{"f1":{"threshold":0.649,"recall":0.694,"precision":0.63,"f1":0.661,"mapped_ha":267.5,"both_ha":168.6,"model_only_ha":98.9,"nwi_only_ha":74.2},"roc":{"threshold":0.102,"recall":0.966,"precision":0.275,"f1":0.428,"mapped_ha":852.3,"both_ha":234.5,"model_only_ha":617.8,"nwi_only_ha":8.2}},"nwi_ha":242.8,"importance":{"hand_01":0.0142,"hand_1":0.0116,"slope16":0.0019,"ssurgo_wt_cm":0.0015,"twi16":0.0012,"dist_1":0.001,"ssurgo_drain":0.001,"s2_ndmi_autumn":0.001},"th":{"eco":{"passes":{"night_winter":96,"night_summer":75,"night_all":361,"day_winter":95,"day_summer":137},"fen_valley":{"night_winter":36.8,"night_summer_neg":87.5,"night_all":17.2,"gw_night":88.1,"day_winter":61.0,"day_summer_neg":77.5,"gw_day":86.1,"landsat_gw_thermal":95.0,"twi_16m":58.8},"rho":{"night_winter":0.012,"night_summer_neg":0.134,"night_all":-0.046,"gw_night":0.172,"day_winter":0.284,"day_summer_neg":0.492,"gw_day":0.67,"landsat_gw_thermal":1.0,"twi_16m":-0.105}},"s2":{"scenes":{"spring":34,"peak":45,"latesummer":56,"autumn":39,"winter":48},"fen_valley":{"ndvi_spring":15.2,"ndmi_spring":8.2,"ndvi_peak":87.8,"ndmi_peak":83.1,"ndvi_latesummer":83.0,"ndmi_latesummer":75.1,"ndvi_autumn":36.1,"ndmi_autumn":31.7,"ndvi_winter":12.2,"ndmi_winter":3.4,"ndvi_drop":19.3,"ndvi_amp_neg":19.6,"twi_16m":58.9}},"seep":{"valley_cells":50983,"threshold_gw_thermal_c":0.9,"threshold_snowfree":0.2,"candidate_ha":4.9,"patches":48,"fen_candidate_cells":6,"fen_cells":22,"fen_pct_in_valley":{"gw_thermal":94.4,"snowfree_resid":95.8},"candidate_nwi_share":0.295,"valley_nwi_share":0.179},"fen_pct":{"summer_anom_neg":77.6,"winter_anom":58.6,"gw_thermal":79.6,"gw_thermal_raw":88.0,"snowfree_frac":97.1,"snowfree_resid":97.3,"twi_16m":81.9,"dist_spring_m_neg":71.9,"dist_contact_m_neg":69.7,"dist_fault_m_neg":53.9,"alluvium":57.3,"geo_Ce":0.0,"geo_Og":0.0,"geo_Cp":58.8,"geo_Celd":0.0,"geo_Or":0.0,"night_winter":51.8,"night_summer_neg":85.4,"night_all":20.8,"gw_night":89.8,"day_winter":49.0,"day_summer_neg":79.2,"gw_day":79.2,"landsat_gw_thermal":79.6,"ndvi_spring":24.9,"ndmi_spring":27.5,"ndvi_peak":68.3,"ndmi_peak":55.9,"ndvi_latesummer":57.3,"ndmi_latesummer":44.4,"ndvi_autumn":17.6,"ndmi_autumn":7.0,"ndvi_winter":10.0,"ndmi_winter":7.0,"ndvi_drop":26.8,"ndvi_amp_neg":3.4}},"geom":{"w":2036,"h":1454,"huc":"M1087.0,123.6L1096.4,136.5L1103.9,138.0L1103.7,147.8L1106.2,156.8L1103.4,164.9L1106.7,169.3L1111.2,186.3L1118.7,193.3L1117.2,201.3L1118.0,206.0L1127.6,221.4L1134.6,223.8L1145.9,218.1L1159.7,215.5L1179.6,214.5L1180.8,215.3L1178.9,222.7L1195.3,241.2L1202.1,245.8L1204.1,249.4L1209.1,270.7L1202.5,278.8L1200.3,287.0L1200.2,290.0L1205.5,302.4L1201.0,324.6L1205.3,337.9L1217.2,350.4L1217.8,366.0L1221.7,376.5L1219.6,382.4L1221.6,391.9L1217.6,405.6L1206.7,416.9L1206.2,421.1L1207.4,424.9L1210.9,428.2L1225.9,428.6L1229.8,430.0L1234.6,435.6L1236.9,444.2L1237.4,463.3L1238.9,468.9L1242.5,476.5L1248.5,483.6L1254.8,498.8L1254.6,507.1L1256.7,515.5L1256.0,522.2L1263.5,528.5L1263.6,536.6L1274.1,558.7L1272.7,582.4L1284.9,590.2L1287.4,594.2L1282.2,606.6L1282.5,619.3L1280.4,627.2L1292.7,651.1L1296.4,666.7L1300.6,672.4L1320.8,681.7L1344.6,683.1L1349.5,686.3L1361.8,699.4L1374.9,704.2L1384.7,704.7L1400.7,712.7L1413.7,725.0L1441.3,766.5L1462.0,790.2L1475.4,789.4L1527.0,801.6L1544.7,803.6L1560.7,787.9L1577.2,768.6L1579.9,760.7L1583.0,758.3L1600.3,753.1L1616.8,758.7L1623.0,762.7L1647.6,764.8L1654.3,767.0L1667.2,775.2L1672.3,783.4L1684.2,792.2L1690.9,801.3L1702.1,799.4L1706.8,800.1L1720.8,808.8L1766.7,829.9L1769.4,829.6L1784.1,818.9L1786.5,818.8L1792.2,825.6L1797.8,829.0L1811.9,832.2L1833.2,840.4L1869.5,860.3L1884.7,862.0L1893.0,868.7L1910.5,878.7L1917.6,888.0L1931.5,894.2L1936.1,900.0L1953.6,909.8L1964.9,922.5L1972.5,935.0L1973.6,946.3L1976.0,950.8L1989.0,968.2L2008.0,987.2L2010.9,995.6L2008.7,1002.6L2005.9,1004.3L1993.4,1000.7L1984.4,1002.8L1962.6,1013.4L1935.3,1031.8L1907.2,1034.8L1900.5,1039.5L1882.2,1059.9L1871.7,1064.0L1859.7,1065.4L1854.3,1064.5L1842.1,1061.4L1832.5,1055.9L1826.7,1059.0L1818.1,1058.4L1810.7,1061.8L1799.0,1061.2L1788.2,1066.1L1781.5,1091.9L1796.4,1105.7L1798.5,1109.9L1807.7,1140.5L1804.7,1155.0L1806.2,1164.6L1814.1,1175.8L1814.8,1180.2L1812.8,1201.4L1829.7,1221.3L1818.2,1232.6L1803.5,1235.0L1798.1,1237.8L1796.6,1251.9L1792.6,1260.6L1788.9,1264.4L1773.3,1269.7L1767.0,1274.6L1763.6,1275.4L1748.9,1272.6L1727.0,1259.9L1708.0,1261.1L1674.3,1250.8L1647.6,1248.9L1621.9,1255.7L1611.1,1251.3L1599.1,1240.7L1592.3,1238.1L1583.6,1238.1L1569.0,1247.4L1561.2,1248.0L1548.0,1244.3L1538.5,1235.6L1525.5,1232.8L1518.0,1235.5L1498.4,1248.5L1493.3,1250.3L1483.5,1250.5L1477.3,1247.9L1475.0,1244.8L1450.0,1202.5L1434.8,1203.9L1425.2,1201.5L1386.3,1215.0L1378.6,1215.0L1361.5,1206.9L1346.8,1197.1L1344.5,1194.2L1344.2,1183.7L1332.7,1177.8L1317.3,1155.0L1312.0,1150.2L1307.0,1148.9L1304.8,1150.2L1297.9,1164.0L1294.3,1168.0L1278.4,1179.5L1270.9,1196.5L1257.2,1205.7L1255.2,1208.8L1254.7,1215.7L1258.2,1244.4L1257.8,1258.1L1259.9,1269.1L1255.1,1274.0L1242.3,1277.1L1233.4,1270.8L1216.9,1263.3L1200.5,1250.8L1179.4,1255.9L1168.4,1254.3L1158.3,1248.6L1145.1,1236.0L1139.5,1233.7L1133.2,1233.5L1127.3,1236.6L1111.2,1251.4L1092.8,1252.8L1087.3,1255.1L1084.7,1259.9L1083.4,1279.1L1076.3,1293.5L1064.2,1329.6L1066.9,1351.4L1073.3,1380.0L1073.8,1390.4L1080.0,1405.3L1079.1,1410.7L1071.7,1410.9L1061.1,1407.0L1042.8,1396.0L1032.9,1386.8L1028.5,1384.9L1020.6,1392.6L1010.0,1396.8L1006.0,1399.9L997.2,1419.3L994.2,1422.3L988.1,1426.7L980.0,1429.0L977.1,1427.9L975.2,1424.6L975.9,1410.1L973.1,1402.4L971.0,1399.3L959.4,1391.7L950.3,1380.9L947.6,1380.0L940.7,1384.6L934.3,1385.7L918.4,1379.8L899.8,1380.7L860.5,1367.8L856.9,1368.1L845.9,1374.7L833.8,1377.9L823.8,1391.7L815.0,1393.9L802.4,1388.6L788.1,1375.8L777.9,1372.5L757.3,1374.1L734.3,1372.5L726.5,1376.6L717.7,1378.6L703.5,1379.1L679.2,1367.5L658.2,1376.5L653.0,1377.0L647.6,1365.7L640.9,1363.1L630.8,1361.9L622.6,1363.6L607.9,1375.0L586.5,1369.3L578.9,1380.6L574.7,1382.9L562.2,1378.9L549.8,1360.7L543.0,1356.6L535.1,1357.8L524.7,1368.5L508.2,1374.1L502.1,1385.8L492.7,1393.9L478.2,1390.6L465.6,1393.8L460.9,1393.1L439.1,1381.5L432.3,1373.4L421.0,1382.7L412.7,1386.7L377.3,1386.1L361.7,1390.1L357.3,1385.9L351.4,1372.8L345.4,1368.4L324.6,1369.3L309.4,1372.7L288.9,1363.1L282.6,1357.8L271.9,1355.6L258.0,1333.9L238.7,1322.5L237.2,1317.5L238.7,1306.9L237.2,1301.4L225.3,1293.5L215.2,1289.2L201.4,1290.1L198.0,1288.8L167.8,1271.8L158.7,1264.4L128.3,1270.2L120.5,1268.5L117.0,1266.0L105.6,1237.6L105.6,1225.0L100.5,1218.3L82.5,1210.2L63.4,1192.5L45.8,1188.7L40.4,1184.5L37.6,1176.9L36.8,1167.9L29.4,1151.9L25.0,1133.9L26.5,1128.4L29.3,1125.1L49.4,1107.1L57.6,1097.4L60.5,1091.3L62.2,1079.6L73.0,1069.6L88.1,1059.9L110.9,1051.7L120.0,1046.0L124.9,1034.8L138.0,1026.8L149.5,1010.2L148.6,991.8L143.8,981.5L135.6,972.5L122.0,965.5L119.4,961.0L117.7,935.2L120.8,931.2L134.1,921.2L145.0,886.6L140.7,877.7L131.6,867.5L128.1,853.8L119.9,835.6L110.3,826.4L115.4,806.4L112.4,790.6L105.3,768.6L107.2,744.9L110.9,741.5L112.3,736.2L117.2,734.1L121.7,729.2L122.3,718.7L128.3,707.1L128.3,704.1L123.2,697.9L109.1,692.6L106.5,684.8L102.9,680.7L85.4,682.0L78.9,685.1L67.8,683.2L63.4,671.0L54.3,658.9L49.6,643.5L43.8,636.6L49.6,631.7L64.1,629.2L67.4,626.1L75.8,610.6L81.4,587.8L91.2,576.4L107.9,564.7L118.6,547.9L133.0,547.6L154.6,542.0L158.5,539.7L162.7,526.6L162.4,520.7L171.5,505.1L172.8,498.9L171.0,494.0L176.3,482.6L182.7,447.9L197.0,430.4L212.9,418.6L218.6,407.0L218.3,402.2L210.7,381.3L208.8,360.3L204.3,347.7L204.3,342.0L206.6,335.7L205.4,324.2L196.5,294.2L197.2,288.6L210.1,266.3L249.4,231.9L260.7,237.3L271.6,237.2L276.4,234.1L284.3,221.3L290.4,218.8L305.6,223.4L338.1,222.1L353.6,227.0L361.1,237.6L377.7,238.0L384.4,242.5L401.5,266.7L409.6,286.9L412.9,290.5L443.6,294.4L452.1,292.8L457.1,289.0L485.8,294.8L491.3,294.8L503.5,291.4L515.4,291.3L527.3,282.5L530.2,275.5L530.8,267.2L536.3,253.4L542.3,249.7L555.3,246.3L556.4,244.6L557.7,229.2L555.8,210.7L564.5,193.4L574.6,185.6L598.6,179.2L622.3,189.2L632.1,188.9L641.0,195.0L652.7,194.6L657.2,200.5L661.1,219.4L664.3,221.4L678.3,217.4L703.1,198.8L705.9,193.2L705.9,186.8L698.7,174.6L716.5,156.2L719.2,147.1L724.5,139.1L721.5,134.5L709.5,124.1L703.2,120.7L700.4,105.5L703.1,93.9L712.6,87.3L717.5,80.7L717.7,73.1L713.9,64.0L714.9,51.0L720.4,47.5L731.5,50.5L734.7,50.0L740.7,35.9L744.4,33.3L750.1,33.1L758.7,36.2L764.7,31.6L767.0,26.7L770.6,25.1L779.5,25.8L799.4,36.3L818.8,43.0L823.2,43.2L841.4,38.4L850.3,39.2L861.6,48.8L864.1,57.5L866.6,60.9L878.8,65.4L910.5,60.6L918.5,52.4L920.5,46.5L928.9,36.2L934.9,31.0L943.8,26.8L956.1,27.5L976.2,37.9L991.7,31.7L1004.7,35.2L1020.2,27.6L1027.1,27.1L1039.8,37.8L1042.3,48.8L1046.0,52.2L1052.6,54.0L1078.5,53.4L1082.6,80.5L1090.5,92.2L1089.1,101.9L1090.1,113.3L1087.0,123.6Z","site_c":[768.5935057227471,428.5410613626009]},"meta":{"huc12":"110100070301","name":"Strother Creek","area_km2":103.36,"site_m2":5033,"dem_px":[16294,11637],"site_xy":[670391.0,4168208.2],"site_elev":[322.76,324.25,323.41]}};
+const fmt = (v, d = 0) => Number(v).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = v => fmt(v * 100) + "%";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- layers in the stack, bottom to top ---------- */
+const FAM = { terrain: ["Terrain (LiDAR)", "--terrain"], soil: ["Soils & geology", "--soil"], radar: ["Radar", "--radar"], optical: ["Optical", "--optical"],
+  thermal: ["Thermal", "--thermal"], label: ["Training labels", "--label"], output: ["Model output", "--output"], cv: ["Validation", "--accent"] };
+const L = [
+  { id: "elev", img: "ws2d_elev", name: "1 m LiDAR elevation", fam: "terrain", src: "USGS 3DEP 1 m DEM (2017, 2023)", res: "1 m, analysed at 8–16 m", what: "Bare-earth elevation; the base for every terrain index.", found: "TWI from the 1 m DEM is worse than chance at finding NWI wetlands (AUC 0.38); at 16 m it rises to 0.89." },
+  { id: "twi16", img: "ws2d_twi16", name: "Topographic wetness index", fam: "terrain", src: "Computed from the DEM (WhiteboxTools, FD8)", res: "16 m", what: "ln(upslope area / tan slope): where water collects.", found: "Strong alone in forest (AUC 0.91) but finds mostly the channel-side edges of NWI polygons." },
+  { id: "hand", img: "ws2d_hand", name: "Height above nearest stream", fam: "terrain", src: "Computed from the DEM (HAND)", res: "16 m", what: "Vertical distance to the nearest drainage line: a proxy for depth to the water table.", found: "The single strongest predictor: AP +0.135 over terrain without it." },
+  { id: "swt", img: "ws2d_swt", name: "SSURGO water table", fam: "soil", src: "USDA NRCS SSURGO", res: "map-unit polygons", what: "Surveyed depth to the seasonal water table, drainage class, hydric share.", found: "Runs the wrong way here: floodplain gravels rated deep and well drained; the fen rated well drained." },
+  { id: "geo", img: "ws2d_geo", name: "Bedrock geology", fam: "soil", src: "Missouri Geological Survey 1:100,000", res: "polygons", what: "Bedrock units, contacts, faults, springs, alluvium.", found: "Alluvium and Potosi Dolomite mark valley floors, already captured by HAND; no gain in the model." },
+  { id: "nhh", img: "ws2d_nhh", name: "NISAR L-band HH", fam: "radar", src: "NASA-ISRO NISAR L2 GCOV (provisional), 8 dates Jun–Oct 2026", res: "~10–20 m", what: "24 cm radar penetrates canopy; wetter soil and flooded trunks brighten HH.", found: "Adds AP +0.06 over terrain; one of the first applied uses of real NISAR data." },
+  { id: "svv", img: "ws2d_svv", name: "Sentinel-1 C-band VV", fam: "radar", src: "ESA Sentinel-1 via OPERA RTC, summer and leaf-off stacks", res: "~10–20 m", what: "5.6 cm radar senses the canopy and top soil.", found: "Adds AP +0.08 over terrain; the two radars together +0.06 on top of HAND and soils." },
+  { id: "ndmi", img: "ws2d_ndmi", name: "Sentinel-2 moisture", fam: "optical", src: "ESA Sentinel-2 L2A, 417 scenes 2017–2026", res: "10 m", what: "Seasonal greenness (NDVI) and moisture (NDMI) anomalies.", found: "Small, significant gain (AP +0.027): mostly the bottomland-forest canopy signature." },
+  { id: "gwt", img: "ws2d_gwt", name: "Landsat thermal", fam: "thermal", src: "Landsat 8/9 surface temperature, 2013–2026", res: "100 m (delivered at 30 m)", what: "Winter-warm / summer-cool anomaly after removing sun exposure: a groundwater signature.", found: "No effect on the model (AP −0.012); the fen stands out by day only." },
+  { id: "econ", img: "ws2d_econ", name: "ECOSTRESS night", fam: "thermal", src: "ECOSTRESS LSTE v2, 361 night passes 2018–2026", res: "70 m", what: "Night-time surface temperature, no sunshine in the signal.", found: "Lowers AP (−0.037); the fen does not stand out on winter nights." },
+  { id: "nwilab", img: "ws2d_nwilab", name: "NWI wetlands (labels)", fam: "label", src: "US Fish & Wildlife Service National Wetlands Inventory", res: "polygons → 16 m cells", what: "269 vegetated wetland polygons, 245 ha: the training labels. Orange = forested/shrub, magenta = emergent.", found: "Mostly temporarily flooded floodplain forest; 81% of wetland cells sit on a polygon edge." },
+  { id: "folds", img: "ws2d_folds", name: "Spatial cross-validation", fam: "cv", src: "20 blocks of 3 km, dealt into 5 folds", res: "3 km blocks", what: "Every cell is predicted by a model that never saw its block.", found: "A random split would report AP 0.82 instead of 0.72." },
+  { id: "rfg", img: "ws2d_rfg", name: "Wetland probability", fam: "output", src: "Random forest, out-of-fold", res: "16 m", what: "Probability that a cell is NWI wetland, from terrain + radar + soils + Sentinel-2.", found: "AP 0.72 (95% interval 0.61–0.80) against 0.025 by chance." },
+  { id: "rfw", img: "ws2d_rfw", name: "Wetland map", fam: "output", src: "Probability with two cut-offs", res: "16 m", what: "Dark blue: wet at the strict (F1) cut-off. Light blue: wet only at the lenient (Youden) cut-off.", found: "Strict map: 268 ha mapped, 69% of NWI found, 63% precision." },
+];
+const INPUTS = ["elev", "twi16", "hand", "swt", "geo", "nhh", "svv", "ndmi", "gwt", "econ"];
+
+/* ---------- steps ---------- */
+const S = N.sets, P = N.paired, LR = N.learners;
+const gain = k => { const r = P[k]; const s = r.ci[0] > 0 ? ' <span class="up">▲</span>' : r.ci[1] < 0 ? ' <span class="dn">▼</span>' : ""; return `${r.diff >= 0 ? "+" : "−"}${fmt(Math.abs(r.diff), 3)}${s}`; };
+const STEPS = [
+  { tab: "Question", view: { show: [...INPUTS, "nwilab", "rfg"], gap: 30, rx: 60, rz: -34, hl: [] }, html: () => `
+    <p class="lead">Can free, statewide remote-sensing data map Missouri’s <b>saturated, groundwater-fed wetlands</b>, the kind with little open water and sparse vegetation, and the fens among them?</p>
+    <p>A pilot in one Ozark watershed tests every freely available source against the National Wetlands Inventory, then asks whether any of them can find a known fen without being told where it is.</p>
+    <div class="chips">
+      <div class="chip"><b>103 km²</b><span>HUC12 watershed</span></div>
+      <div class="chip"><b>${fmt(N.share * 100, 1)}%</b><span>of cells are NWI wetland</span></div>
+      <div class="chip"><b>13</b><span>data layers from 6 families</span></div>
+      <div class="chip"><b>${fmt(N.cells)}</b><span>16 m cells modelled</span></div>
+      <div class="chip"><b>22</b><span>model configurations compared</span></div>
+    </div>
+    <p class="small muted">The stack on the left is built from the project’s actual map layers, bottom to top: terrain, soils and geology, radar, optical, thermal, the NWI training labels and the model’s wetland probability.</p>` },
+  { tab: "Study area", view: { show: ["elev", "nwilab"], gap: 26, rx: 34, rz: -8, hl: ["nwilab"], marker: true }, html: () => `
+    <p class="lead">Strother Creek (HUC12 ${N.meta.huc12}), Iron County, in the dolomite karst of the Missouri Ozarks: steep forested hills cut by gravel-floored valleys.</p>
+    <div class="chips">
+      <div class="chip"><b>${fmt(N.meta.area_km2, 0)} km²</b><span>watershed area</span></div>
+      <div class="chip"><b>254–452 m</b><span>elevation range</span></div>
+      <div class="chip"><b>${fmt(N.nwi_ha)} ha</b><span>NWI vegetated wetland</span></div>
+      <div class="chip"><b>0.5 ha</b><span>Barton Fen (pink marker)</span></div>
+    </div>
+    <ul class="tight">
+      <li><b>NWI here is floodplain forest.</b> Most of the 269 polygons are temporarily flooded bottomland forest along the creeks (orange); only 23 are emergent (magenta).</li>
+      <li><b>Barton Fen</b> is a groundwater-fed, herbaceous fen at a hillside toe on Potosi Dolomite, about 80 m from a bedrock contact: the kind of wetland NWI rarely maps.</li>
+      <li>The target is <b>boundary detection</b> of saturated ground, not open water: standing water appears only briefly after rain.</li>
+    </ul>` },
+  { tab: "Data", view: { show: INPUTS, gap: 44, rx: 62, rz: -40, hl: [] }, html: () => `
+    <p class="lead">Ten input layers from six families, all free and available statewide. Click any layer in the list on the stack for what it measures and what it showed.</p>
+    <table><tr><th>Family</th><th>Layers</th><th>Resolution</th></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--terrain)"></i> Terrain</td><td>1 m LiDAR DEM → TWI, slope, height above stream (HAND), distance to stream, modelled saturation frequency</td><td class="n">1–16 m</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--radar)"></i> Radar</td><td>NISAR L-band HH/HV (8 dates, 2026); Sentinel-1 C-band VV/VH (summer and leaf-off); wet − dry change</td><td class="n">10–20 m</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--optical)"></i> Optical</td><td>Sentinel-2 NDVI and NDMI seasonal anomalies</td><td class="n">10 m</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--thermal)"></i> Thermal</td><td>Landsat 8/9 day; ECOSTRESS day and night</td><td class="n">70–100 m</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--soil)"></i> Soils, geology</td><td>SSURGO water table, drainage, hydric share; bedrock units, contacts, springs</td><td class="n">polygons</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--label)"></i> Labels</td><td>NWI vegetated wetlands (reference, not an input)</td><td class="n">polygons</td></tr>
+    </table>
+    <p class="small muted">Everything is brought onto one 16 m grid. Each sensor is processed as a multi-year or multi-date stack, never a single scene: 252 Landsat, 760 ECOSTRESS and 417 Sentinel-2 scenes.</p>` },
+  { tab: "Method", view: { show: [...INPUTS, "nwilab", "rfg"], gap: 9, rx: 60, rz: -30, hl: ["nwilab"], slab: true, split: true }, html: () => `
+    <p class="lead">Every layer becomes features on a 16 m grid; a random forest learns which combinations mark NWI wetland, then maps a probability for every cell.</p>
+    ${flowSVG()}
+    <ul class="tight small">
+      <li><b>Model:</b> random forest, 300 trees, class-balanced (wetland is only ${fmt(N.share * 100, 1)}% of cells), 43 features in the map model.</li>
+      <li><b>Ablation:</b> the same model is retrained with each data family added in turn, so the value of each source is measured directly.</li>
+      <li><b>Cut-offs:</b> a strict one (best F1, p ≥ ${fmt(N.thr.f1.threshold, 2)}) and a lenient one (Youden, p ≥ ${fmt(N.thr.roc.threshold, 2)}) turn probability into a wet/dry map.</li>
+    </ul>` },
+  { tab: "Validation", view: { show: ["elev", "folds"], gap: 30, rx: 40, rz: -12, hl: ["folds"] }, html: () => `
+    <p class="lead">Neighbouring cells are near-copies of each other, so a random train/test split flatters any model. Here the watershed is cut into ${N.blocks} blocks of 3 km and every cell is scored by a model that never saw its block.</p>
+    <div class="chips">
+      <div class="chip"><b>${fmt(N.random_cv.ap, 2)}</b><span>AP with a random split (inflated)</span></div>
+      <div class="chip"><b>${fmt(N.random_cv.spatial_ap, 2)}</b><span>AP with spatial blocks (reported)</span></div>
+      <div class="chip"><b>${fmt(N.share, 3)}</b><span>AP of a random map</span></div>
+    </div>
+    <ul class="tight">
+      <li><b>AP, not just AUC.</b> With 2.5% wetland, AUC is ~0.99 for almost any terrain model. Average precision (area under the precision–recall curve) shows how clean the top of the ranking is.</li>
+      <li><b>Uncertainty.</b> Blocks are resampled 1,000 times for 95% intervals; differences between models are tested in pairs on the same resamples.</li>
+      <li><b>Label edges.</b> ${pct(N.edge_share)} of NWI cells touch a polygon edge, where a 16 m label is least certain; every model is also scored without them.</li>
+    </ul>` },
+  { tab: "What each source adds", view: { show: [...INPUTS, "rfg"], gap: 14, rx: 58, rz: -36, hl: ["rfg"], dimInputs: true }, html: () => `
+    <p class="lead">Height above the stream is the big step; radar adds a clear second step; Sentinel-2 a small one. Thermal data and extra layers make the model worse.</p>
+    <div id="abl"></div>
+    <div class="legendrow"><span><i style="background:var(--accent)"></i>map model</span><span><i style="background:var(--muted)"></i>other input sets</span><span>— 95% interval</span><span><s></s>chance (${fmt(N.share, 3)})</span></div>
+    <table><tr><th>Adding…</th><th style="text-align:right">AP change</th></tr>
+      <tr><td>Height above stream (to terrain)</td><td class="n">${gain("topo_hand - topo")}</td></tr>
+      <tr><td>NISAR L-band (to terrain)</td><td class="n">${gain("topo_nisar - topo")}</td></tr>
+      <tr><td>Sentinel-1 C-band (to terrain)</td><td class="n">${gain("topo_s1 - topo")}</td></tr>
+      <tr><td>SSURGO soils (to terrain + HAND)</td><td class="n">${gain("topo_gw - topo_hand")}</td></tr>
+      <tr><td>Both radars (to terrain + HAND + soils)</td><td class="n">${gain("all_gw - topo_gw")}</td></tr>
+      <tr><td>Sentinel-2 phenology</td><td class="n">${gain("all_gw_s2 - all_gw")}</td></tr>
+      <tr><td>Landsat thermal</td><td class="n">${gain("all_gw_th - all_gw")}</td></tr>
+      <tr><td>ECOSTRESS thermal</td><td class="n">${gain("all_gw_eco - all_gw")}</td></tr>
+      <tr><td>Everything else (geology, thermal)</td><td class="n">${gain("full - all_gw_s2")}</td></tr>
+    </table>
+    <p class="small muted">▲ / ▼ = paired 95% interval excludes zero. Without polygon-edge cells, terrain alone collapses (TWI AP ${fmt(S.twi.ne, 2)}) while the map model keeps ${fmt(S.all_gw_s2.ne, 2)}: terrain finds the edges of NWI polygons, radar and phenology their interiors.</p>`,
+    after: () => ablChart() },
+  { tab: "Model comparison", view: { show: ["elev", "rfw"], gap: 30, rx: 50, rz: -24, hl: ["rfw"] }, html: () => `
+    <p class="lead">Same inputs, same spatial folds, five learners. Tree ensembles win; deep learning does worse with one watershed and 259 polygons.</p>
+    <div id="lrn"></div>
+    <div class="legendrow"><span><i style="background:var(--accent)"></i>map model</span><span>— 95% interval</span></div>
+    <ul class="tight small">
+      <li><b>Gradient boosting</b> ties the random forest exactly: the result does not hinge on the learner.</li>
+      <li><b>U-Net</b> (a convolutional network that sees ~1.5 km around each cell) beats the single-cell network, so spatial context helps, but HAND and TWI already encode the neighbourhood and the training set is small.</li>
+      <li><b>The wetland map</b> (on the stack): at the strict cut-off it maps ${fmt(N.thr.f1.mapped_ha)} ha against NWI’s ${fmt(N.nwi_ha)} ha, finding ${pct(N.thr.f1.recall)} of NWI with ${pct(N.thr.f1.precision)} precision.</li>
+    </ul>`,
+    after: () => lrnChart() },
+  { tab: "Barton Fen", view: { show: ["elev", "nwilab", "rfg"], gap: 18, rx: 30, rz: 0, hl: ["rfg"], marker: true, zoom: 2.6 }, html: () => `
+    <p class="lead">The fen is not invisible to the model, but no data source recognises it <em>as a fen</em>.</p>
+    <div id="fenc"></div>
+    <div class="legendrow"><span><i style="background:var(--site)"></i>Barton Fen, median probability</span><span><s></s>cut-offs: lenient ${fmt(N.thr.roc.threshold, 2)}, strict ${fmt(N.thr.f1.threshold, 2)}</span></div>
+    <ul class="tight small">
+      <li><b>Ranked high, mapped only leniently:</b> in the map model the fen sits at about the 95th percentile of all cells; it is wet at the lenient cut-off, not the strict one. Most of its drop from the terrain model comes from SSURGO, which wrongly rates it well drained.</li>
+      <li><b>Emergent hold-out:</b> retrained without any emergent NWI wetland, the model ranks them just as well (open-land AUC ${fmt(N.emergent.all_gw_s2.std, 2)} → ${fmt(N.emergent.all_gw_s2.held, 2)}) but locates them poorly (AP ${fmt(N.emergent.all_gw_s2.ap, 2)} vs ${fmt(N.emergent.all_gw_s2.chance, 3)} by chance): they are found by valley position, not learned as a type.</li>
+      <li><b>Thermal:</b> Landsat by day puts the fen in the top ~5% of the valley floor for winter-warm / summer-cool, but ECOSTRESS at night does not confirm it (${fmt(N.th.eco.fen_valley.night_winter, 0)}th percentile on winter nights). At 70–100 m one 0.5 ha fen is below what satellites can resolve; no published study has detected a sub-hectare fen from orbit.</li>
+      <li><b>U-Net</b>, which sees the fen’s surroundings, gives it probability ${fmt(LR.unet.fen, 2)}: the more context learned from NWI, the more firmly a toe-slope fen is ruled out.</li>
+    </ul>
+    <div class="pair">
+      <figure><img src="data/img/site2d_rfw.webp" alt="Fen close-up, model wetland map" loading="lazy"><figcaption>Model wetland map, 800 m around the fen</figcaption></figure>
+      <figure><img src="data/img/site2d_gwt.webp" alt="Fen close-up, Landsat winter minus summer anomaly" loading="lazy"><figcaption>Landsat winter − summer anomaly (100 m)</figcaption></figure>
+    </div>`,
+    after: () => fenChart() },
+  { tab: "Discussion", view: { show: [...INPUTS, "nwilab", "rfg", "rfw"], gap: 26, rx: 60, rz: -34, hl: [] }, html: () => `
+    <div class="three">
+      <div class="box"><h3>1 · Terrain first, radar second</h3><p>Height above stream carries most of the skill; L- and C-band radar each add a significant, similar step, and locate wetland interiors that terrain misses. Use terrain at 8–16 m, not 1 m.</p></div>
+      <div class="box"><h3>2 · The ceiling is the label</h3><p>The model reproduces NWI (AP ${fmt(S.all_gw_s2.ap, 2)}), and NWI here is floodplain forest. Edge cells, omission of small wetlands and only 23 emergent polygons limit what any learner can learn.</p></div>
+      <div class="box"><h3>3 · Fens need their own evidence</h3><p>Thermal and phenology proxies do not single out a 0.5 ha fen at 10–100 m. Finding fens needs fen-specific labels and sub-metre data.</p></div>
+    </div>
+    <div>
+      <h3 style="margin:0 0 6px;font-family:var(--display);font-size:16px">Limitations</h3>
+      <ul class="tight small">
+        <li>One watershed, one physiographic region; reference data = NWI, itself incomplete.</li>
+        <li>The best of 13 input sets was chosen after the fact; paired tests support the key gains.</li>
+        <li>NISAR products are provisional (calibration still being refined); radar wet and dry dates are also summer and autumn.</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin:0 0 6px;font-family:var(--display);font-size:16px">Next steps</h3>
+      <ul class="tight small">
+        <li><b>Second watershed</b> in a contrasting region (glaciated plains or Bootheel lowlands): apply the model unchanged as a truly independent test.</li>
+        <li><b>Independent reference sample:</b> a few hundred desk-interpreted points from NAIP and LiDAR, scored blind.</li>
+        <li><b>Fen-specific labels:</b> Missouri Natural Heritage and MDC karst-fen records; predictors from where Ozark fens form (bedrock contacts, slope breaks, 1st–2nd order streams).</li>
+        <li><b>One field step:</b> a pre-dawn winter drone thermal flight over Barton Fen.</li>
+      </ul>
+    </div>
+    <p class="small muted">Paper framing: a spatially validated, multi-sensor ablation against an imperfect inventory, with one of the first applications of real NISAR data and the fen as a documented limit. All layers and tables are in the <a href="index.html">data viewer</a>.</p>` },
+];
+
+/* ---------- build stack ---------- */
+const scene = document.getElementById("scene"), spinner = document.getElementById("spinner"), stage = document.getElementById("stage"), rail = document.getElementById("rail"), info = document.getElementById("info");
+const AR = N.geom.w / N.geom.h;
+scene.style.setProperty("--ar", AR);
+const planes = {};
+for (const l of L) {
+  const d = document.createElement("div"); d.className = "plane hide";
+  d.innerHTML = `<div class="frame"></div><img src="data/img/${l.img}.webp" alt="" decoding="async">`;
+  spinner.appendChild(d); planes[l.id] = d;
+}
+const slab = document.createElement("div"); slab.className = "slab";
+slab.innerHTML = `<div><b>Random forest</b><span>43 features × ${fmt(N.cells)} cells · 5 spatial folds</span></div>`;
+spinner.appendChild(slab);
+const marker = document.createElement("div"); marker.className = "marker"; marker.innerHTML = "<i></i>";
+spinner.appendChild(marker);
+const railBtns = {};
+for (const l of [...L].reverse()) {
+  const b = document.createElement("button"); b.type = "button";
+  b.innerHTML = `<i style="background:var(${FAM[l.fam][1]})"></i>${l.name}`;
+  b.addEventListener("click", () => showInfo(l));
+  b.addEventListener("mouseenter", () => planes[l.id].classList.add("hl"));
+  b.addEventListener("mouseleave", () => { if (!cur.view.hl.includes(l.id)) planes[l.id].classList.remove("hl"); });
+  rail.appendChild(b); railBtns[l.id] = b;
+}
+function showInfo(l) {
+  info.hidden = false;
+  info.innerHTML = `<button class="x" type="button" aria-label="Close">×</button><h4>${l.name}</h4><div class="muted" style="font-size:12px">${FAM[l.fam][0]}</div>
+    <dl><dt>Source</dt><dd>${l.src}</dd><dt>Grid</dt><dd>${l.res}</dd><dt>Measures</dt><dd>${l.what}</dd><dt>Found</dt><dd>${l.found}</dd></dl>`;
+  info.querySelector(".x").onclick = () => { info.hidden = true; };
+  Object.values(railBtns).forEach(b => b.classList.remove("hl")); railBtns[l.id].classList.add("hl");
+}
+
+/* ---------- view state ---------- */
+let rx = 60, rz = -34, userRx = 0, userRz = 0, spin = !matchMedia("(prefers-reduced-motion: reduce)").matches, spinRz = 0, cur = STEPS[0], zoom = 1;
+function size() {
+  const r = stage.getBoundingClientRect();
+  const pw = Math.min(r.width * 0.6, (r.height * 0.62) * AR, 640);
+  scene.style.setProperty("--pw", pw + "px");
+  scene.style.marginLeft = -pw / 2 + "px"; scene.style.marginTop = -pw / AR / 2 + "px";
+}
+function applyTransform() {
+  const z = zoom, v = cur.view;
+  let tx = 0, ty = 0;
+  if (v.zoom) { const pw = parseFloat(scene.style.getPropertyValue("--pw")); const c = N.geom.site_c; tx = -(c[0] / N.geom.w - 0.5) * pw * z; ty = -(c[1] / N.geom.h - 0.5) * pw / AR * z; }
+  scene.style.transform = `translate(${tx}px, ${ty}px) rotateX(${Math.max(0, Math.min(80, rx + userRx))}deg) rotateZ(${rz}deg) scale(${z})`;
+  spinner.style.transform = `rotateZ(${userRz + spinRz}deg)`;
+}
+function setView(v) {
+  if (v.zoom) { spinRz = 0; userRz = 0; }
+  rx = v.rx; rz = v.rz; zoom = v.zoom || 1; userRx = 0;
+  const shown = L.filter(l => v.show.includes(l.id));
+  const n = shown.length;
+  let zi = 0;
+  for (const l of L) {
+    const p = planes[l.id], on = v.show.includes(l.id);
+    p.classList.toggle("hide", !on);
+    p.classList.toggle("hl", v.hl.includes(l.id));
+    p.classList.toggle("dim", !!v.dimInputs && INPUTS.includes(l.id));
+    railBtns[l.id].classList.toggle("off", !on);
+    if (on) {
+      let z = (zi - (n - 1) / 2) * v.gap;
+      if (v.split && l.id === "nwilab") z += v.gap * 6;
+      if (v.split && l.id === "rfg") z += v.gap * 11;
+      if (v.slab && INPUTS.includes(l.id)) z -= v.gap * 2;
+      p.style.transform = `translateZ(${z}px)`; p.dataset.z = z; zi++;
+    }
+  }
+  const top = Math.max(...shown.map(l => +planes[l.id].dataset.z || 0));
+  slab.style.opacity = v.slab ? 1 : 0;
+  slab.style.transform = `translateZ(${v.slab ? (n - 1) / 2 * v.gap + v.gap * 2 : 0}px)`;
+  const c = N.geom.site_c;
+  marker.style.left = (c[0] / N.geom.w * 100) + "%"; marker.style.top = (c[1] / N.geom.h * 100) + "%";
+  marker.style.opacity = v.marker ? 1 : 0;
+  marker.style.transform = `translateZ(${top + 2}px)`;
+  applyTransform();
+}
+
+/* ---------- steps UI ---------- */
+const tabs = document.getElementById("tabs"), card = document.getElementById("card");
+STEPS.forEach((s, i) => {
+  const b = document.createElement("button"); b.type = "button"; b.innerHTML = `<b>${i + 1}</b>${s.tab}`;
+  b.addEventListener("click", () => go(i)); tabs.appendChild(b);
+});
+let idx = 0;
+function go(i, push = true) {
+  idx = Math.max(0, Math.min(STEPS.length - 1, i)); cur = STEPS[idx];
+  [...tabs.children].forEach((b, j) => { if (j === idx) { b.setAttribute("aria-current", "step"); b.scrollIntoView({ block: "nearest", inline: "nearest" }); } else b.removeAttribute("aria-current"); });
+  card.innerHTML = `<div class="num">Step ${idx + 1} of ${STEPS.length}</div><h2>${["What are we asking?", "Where", "What goes in", "How the model works", "How it is tested", "Results: what each data source adds", "Results: which learner", "Case study: Barton Fen", "What it means and what comes next"][idx]}</h2>${cur.html()}
+    <div class="nav"><button type="button" id="prev" ${idx === 0 ? "disabled" : ""}>← ${idx > 0 ? STEPS[idx - 1].tab : "Back"}</button>
+    <button type="button" class="primary" id="next" ${idx === STEPS.length - 1 ? "disabled" : ""}>${idx < STEPS.length - 1 ? STEPS[idx + 1].tab : "End"} →</button></div>`;
+  card.querySelector("#prev").onclick = () => go(idx - 1); card.querySelector("#next").onclick = () => go(idx + 1);
+  if (cur.after) cur.after();
+  info.hidden = true; Object.values(railBtns).forEach(b => b.classList.remove("hl"));
+  setView(cur.view);
+  if (push) history.replaceState(null, "", "#step-" + (idx + 1));
+}
+
+/* ---------- charts (SVG, hover tooltips) ---------- */
+const tip = document.getElementById("tip");
+function hoverTip(el, text) {
+  el.addEventListener("mousemove", e => { tip.hidden = false; tip.innerHTML = text; tip.style.left = Math.min(e.clientX + 14, innerWidth - 290) + "px"; tip.style.top = e.clientY + 14 + "px"; });
+  el.addEventListener("mouseleave", () => { tip.hidden = true; });
+}
+function dotChart(host, rows, { xmax = 1, chance = null, lines = [], unit = "AP" } = {}) {
+  const W = 560, lw = 230, rh = 26, top = lines.length ? 24 : 8, H = top + rows.length * rh + 26, x = v => lw + (W - lw - 16) * v / xmax;
+  const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("class", "chart"); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", rows.map(r => `${r.label}: ${unit} ${r.v.toFixed(2)}`).join("; "));
+  let g = `<g class="grid">`;
+  for (let t = 0; t <= xmax + 1e-9; t += xmax / 5) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 22}"/>`;
+  g += `</g><g class="ax">`;
+  for (let t = 0; t <= xmax + 1e-9; t += xmax / 5) g += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle">${t.toFixed(1)}</text>`;
+  g += `</g>`;
+  if (chance != null) g += `<line x1="${x(chance)}" x2="${x(chance)}" y1="${top - 4}" y2="${H - 22}" stroke="${css("--muted")}" stroke-dasharray="4 3" stroke-width="1.5"/>`;
+  for (const [v, lab] of lines) g += `<line x1="${x(v)}" x2="${x(v)}" y1="${top - 4}" y2="${H - 22}" stroke="${css("--muted")}" stroke-dasharray="4 3" stroke-width="1.5"/><text x="${x(v)}" y="${top - 10}" text-anchor="middle" style="font-size:11px;fill:${css("--muted")}">${lab}</text>`;
+  svg.innerHTML = g;
+  rows.forEach((r, i) => {
+    const y = top + i * rh + rh / 2, col = r.color || (r.hi ? css("--accent") : css("--muted"));
+    const row = document.createElementNS(ns, "g");
+    row.innerHTML = `<rect x="0" y="${y - rh / 2}" width="${W}" height="${rh}" fill="transparent"/>
+      <text x="${lw - 10}" y="${y + 4}" text-anchor="end" style="${r.hi ? "font-weight:600" : ""}">${r.label}</text>
+      ${r.ci ? `<line x1="${x(r.ci[0])}" x2="${x(r.ci[1])}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>` : `<line x1="${x(0)}" x2="${x(r.v)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="2" stroke-opacity=".35"/>`}
+      <circle cx="${x(r.v)}" cy="${y}" r="${r.hi ? 6 : 5}" fill="${col}" stroke="${css("--panel")}" stroke-width="2"/>
+      <text x="${x(Math.max(r.v, r.ci ? r.ci[1] : r.v)) + 9}" y="${y + 4}" style="font-family:var(--mono);font-size:11.5px;fill:${css("--muted")}">${r.v.toFixed(2)}</text>`;
+    svg.appendChild(row);
+    hoverTip(row, r.tip || `<b>${r.label}</b><br>${unit} ${r.v.toFixed(3)}${r.ci ? ` (95% ${r.ci[0].toFixed(2)}–${r.ci[1].toFixed(2)})` : ""}`);
+  });
+  host.appendChild(svg);
+}
+function ablChart() {
+  const R = [["twi", "TWI only"], ["topo", "Terrain"], ["topo_nisar", "Terrain + NISAR"], ["topo_s1", "Terrain + Sentinel-1"], ["topo_hand", "Terrain + HAND"],
+    ["topo_gw", "+ SSURGO"], ["all_gw", "+ both radars"], ["all_gw_th", "… + Landsat thermal"], ["all_gw_eco", "… + ECOSTRESS"], ["all_gw_s2", "+ Sentinel-2 (map model)"], ["full", "Everything"]];
+  dotChart(document.getElementById("abl"), R.map(([k, lab]) => ({ label: lab, v: S[k].ap, ci: S[k].ci, hi: k === "all_gw_s2",
+    tip: `<b>${lab}</b><br>AP ${S[k].ap.toFixed(3)} (95% ${S[k].ci[0].toFixed(2)}–${S[k].ci[1].toFixed(2)})<br>without edge cells ${S[k].ne.toFixed(2)} · AUC ${S[k].auc.toFixed(3)}` })), { xmax: 1, chance: N.share });
+}
+function lrnChart() {
+  const R = [["random_forest", "Random forest"], ["hist_gradient_boosting", "Gradient boosting"], ["unet", "U-Net (CNN)"], ["pixel", "Neural net, single cell"], ["logistic_regression", "Logistic regression"]];
+  dotChart(document.getElementById("lrn"), R.map(([k, lab]) => ({ label: lab, v: LR[k].ap, ci: LR[k].ci, hi: k === "random_forest",
+    tip: `<b>${lab}</b><br>AP ${LR[k].ap.toFixed(3)} (95% ${LR[k].ci[0].toFixed(2)}–${LR[k].ci[1].toFixed(2)})<br>without edge cells ${LR[k].ne.toFixed(2)}` })), { xmax: 1, chance: N.share });
+}
+function fenChart() {
+  const fp = N.fen_prob;
+  const R = [["Terrain", fp.topo], ["Terrain + radar", fp.topo_all], ["Terrain + HAND", fp.topo_hand], ["+ radar + SSURGO", fp.all_gw], ["Map model (+ Sentinel-2)", fp.all_gw_s2, true],
+    ["Everything", fp.full], ["Gradient boosting", LR.hist_gradient_boosting.fen], ["U-Net (CNN)", LR.unet.fen]];
+  dotChart(document.getElementById("fenc"), R.map(([lab, v, hi]) => ({ label: lab, v, hi, color: css("--site"),
+    tip: `<b>${lab}</b><br>Barton Fen median probability ${v.toFixed(2)}` })), { xmax: 1, lines: [[N.thr.roc.threshold, "lenient"], [N.thr.f1.threshold, "strict"]], unit: "p" });
+}
+function flowSVG() {
+  const st = [["Sources", "13 layers, 6 families"], ["Features", "43 on one 16 m grid"], ["Random forest", "300 trees, balanced"], ["Spatial CV", "5 folds × 3 km blocks"], ["Cut-offs", "strict F1 · lenient Youden"], ["Maps", "probability · wet/dry"]];
+  const w = 560, bw = 86, gap = (w - st.length * bw) / (st.length - 1), y = 18, h = 74;
+  let s = `<svg class="flow" viewBox="0 0 ${w} ${h + 40}" role="img" aria-label="${st.map(a => a[0]).join(" → ")}"><defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8z" fill="${css("--muted")}"/></marker></defs>`;
+  st.forEach(([a, b], i) => {
+    const x = i * (bw + gap), lab = i === 2 ? css("--accent") : css("--rule");
+    s += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="5" fill="${i === 2 ? css("--accent") : css("--bg")}" stroke="${lab}"/>
+      <text x="${x + bw / 2}" y="${y + 26}" text-anchor="middle" style="font-family:var(--display);font-size:11.5px;font-weight:700;fill:${i === 2 ? css("--panel") : css("--fg")}">${a}</text>`;
+    const words = b.split(" "), lines = []; let ln = "";
+    for (const wd of words) { if ((ln + " " + wd).trim().length > 13) { lines.push(ln.trim()); ln = wd; } else ln += " " + wd; } lines.push(ln.trim());
+    lines.forEach((t, j) => { s += `<text x="${x + bw / 2}" y="${y + 42 + j * 12}" text-anchor="middle" style="font-size:10.5px;fill:${i === 2 ? css("--panel") : css("--muted")}">${t}</text>`; });
+    if (i < st.length - 1) s += `<line x1="${x + bw + 2}" x2="${x + bw + gap - 3}" y1="${y + h / 2}" y2="${y + h / 2}" stroke="${css("--muted")}" stroke-width="1.5" marker-end="url(#ar)"/>`;
+  });
+  s += `<path d="M ${3 * (bw + gap) + bw / 2} ${y + h + 4} v 12 H ${2 * (bw + gap) + bw / 2} v -10" fill="none" stroke="${css("--muted")}" stroke-dasharray="3 3" marker-end="url(#ar)"/>
+    <text x="${2.5 * (bw + gap) + bw / 2}" y="${y + h + 30}" text-anchor="middle" style="font-size:10.5px;fill:${css("--muted")}">retrain once per fold and per input set (13 sets)</text></svg>`;
+  return s;
+}
+
+/* ---------- interaction: drag, spin, keys, present ---------- */
+let drag = null;
+stage.addEventListener("pointerdown", e => { if (e.target.closest(".rail, .info")) return; drag = { x: e.clientX, y: e.clientY, rz: userRz, rx: userRx }; stage.classList.add("drag"); scene.classList.add("nodelay"); stage.setPointerCapture(e.pointerId); });
+stage.addEventListener("pointermove", e => { if (!drag) return; userRz = drag.rz + (e.clientX - drag.x) * 0.35; userRx = drag.rx - (e.clientY - drag.y) * 0.25; applyTransform(); });
+const end = () => { if (!drag) return; drag = null; stage.classList.remove("drag"); scene.classList.remove("nodelay"); };
+stage.addEventListener("pointerup", end); stage.addEventListener("pointercancel", end);
+const spinBtn = document.getElementById("spin");
+function setSpin(on) { spin = on; spinBtn.setAttribute("aria-pressed", on); spinBtn.textContent = on ? "Pause rotation" : "Rotate"; }
+spinBtn.onclick = () => setSpin(!spin); setSpin(spin);
+document.getElementById("reset").onclick = () => { userRx = 0; userRz = 0; spinRz = 0; applyTransform(); };
+let last = performance.now();
+(function tick(t) {
+  const dt = Math.min(64, t - last); last = t;
+  if (spin && !drag && !cur.view.zoom) { spinRz = Math.sin(t / 5200) * 14; spinner.style.transform = `rotateZ(${userRz + spinRz}deg)`; }
+  requestAnimationFrame(tick);
+})(last);
+addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea")) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && document.body.classList.contains("present"))) { e.preventDefault(); go(idx + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(idx - 1); }
+  else if (e.key === "f" || e.key === "F") togglePresent();
+  else if (e.key === "Escape") info.hidden = true;
+});
+const presBtn = document.getElementById("present");
+function togglePresent() {
+  const on = !document.body.classList.contains("present");
+  document.body.classList.toggle("present", on); presBtn.setAttribute("aria-pressed", on);
+  try { if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+  setTimeout(() => { size(); applyTransform(); }, 300);
+}
+presBtn.onclick = togglePresent;
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.body.classList.contains("present")) { document.body.classList.remove("present"); presBtn.setAttribute("aria-pressed", false); setTimeout(() => { size(); applyTransform(); }, 300); } });
+addEventListener("resize", () => { size(); applyTransform(); });
+
+size();
+const h = location.hash.match(/step-(\d+)/);
+go(h ? +h[1] - 1 : 0, false);
+</script>
+</body>
+</html>

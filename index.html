@@ -33,6 +33,7 @@ h2 { font-family: var(--display); font-weight: 600; font-size: 1.25rem; margin: 
 .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
 header { display: grid; gap: 10px; }
 header p { margin: 0; color: var(--muted); max-width: 70ch; }
+header p.ovlink a { color: var(--accent); font-weight: 600; text-underline-offset: 3px; }
 .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding-block: 12px; }
 .fact { display: grid; }
 .fact b { font-family: var(--mono); font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; }
@@ -112,6 +113,7 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
   <header>
     <div class="eyebrow">Phase 0 pilot · TWI, rainfall-driven hydroperiod, NISAR and Sentinel-1 radar, random-forest model</div>
     <h1>Strother Creek watershed, HUC12 110100070301</h1>
+    <p class="ovlink"><a href="overview.html">Project overview: an interactive 3D walk-through of the question, data, method, results and next steps →</a></p>
     <p>The 1 m bare-earth DEM mosaicked from six MO_7County_D23 tiles (2023 acquisition), with three MO_FEMAR7 tiles (2017) filling 10 km² in the north-west where the 2023 project ends, and clipped to the HUC12 plus a 200 m buffer. The fen study site sits on the valley floor of Strother Creek.</p>
     <div class="facts" id="facts"></div>
   </header>
