@@ -57,7 +57,7 @@ core = json.load(open(out / "data/core.json"))
 N = dict(
     cells=RF["cells"], share=RF["baseline"]["wetland_share"], blocks=RB["blocks"], wetland=RB["wetland"], edge_share=RB["edge_share_of_wetland"],
     sets={k: dict(ap=v["ap"], ci=v["ap_ci"], ne=v["ap_no_edge"], auc=RF["sets"][k]["auc"], open=RF["sets"][k]["auc_open"]) for k, v in RB["sets"].items()},
-    paired=RB["paired_ap_diff"], random_cv=RB["random_cv"],
+    paired={**RB["paired_ap_diff"], **json.load(open(MD / "coherence_rf.json"))["paired"]}, random_cv=RB["random_cv"],
     learners={**{k: dict(ap=v["ap"], ci=v["ap_ci"], ne=v["ap_no_edge"], fen=v.get("fen_median")) for k, v in RB["learners"].items()},
               **{k: dict(ap=DL[k]["ap"], ci=DL[k]["ap_ci"], ne=DL[k]["ap_no_edge"], fen=DL[k]["fen_median"]) for k in ("unet", "pixel")}},
     emergent={k: dict(std=v["standard"]["open"]["auc"], held=v["held_out"]["open"]["auc"], ap=v["held_out"]["open"]["ap"],

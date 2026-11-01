@@ -10,10 +10,10 @@ P="/home/sgf.edubear.net/xm7303/Wetland2026/"; ST=P+"data/SAR/NISAR/stack/"
 dem_p=P+"data/LiDAR/USGS_3DEP_1m/dem_1m_110100070301_buf200.tif"
 S1D=P+"data/SAR/Sentinel1/stack/"; MD=P+"data/model/"
 FILES={"n":ST+"desc_t012_summary_16m.tif","ss":S1D+"s1_summer_summary_16m.tif","sw":S1D+"s1_leafoff_summary_16m.tif",
-       "pt":MD+"rf_prob_topo.tif","pa":MD+"rf_prob_topo_all.tif","wet":MD+"rf_wet_all_gw_s2.tif","pg":MD+"rf_prob_all_gw_s2.tif","th":P+"data/Thermal/thermal_16m.tif","sc":P+"data/Thermal/seep_candidates_16m.tif","geo":"geo_units_16m.tif","gw":P+"data/Groundwater/gw_16m_110100070301.tif","eco":P+"data/Thermal/eco_16m.tif","s2":P+"data/Imagery/Sentinel2/s2_pheno_16m.tif"}
+       "pt":MD+"rf_prob_topo.tif","pa":MD+"rf_prob_topo_all.tif","wet":MD+"rf_wet_all_gw_s2.tif","pg":MD+"rf_prob_all_gw_s2.tif","th":P+"data/Thermal/thermal_16m.tif","sc":P+"data/Thermal/seep_candidates_16m.tif","geo":"geo_units_16m.tif","gw":P+"data/Groundwater/gw_16m_110100070301.tif","eco":P+"data/Thermal/eco_16m.tif","s2":P+"data/Imagery/Sentinel2/s2_pheno_16m.tif","coh":P+"data/SAR/NISAR/GUNW/coh_16m.tif"}
 BAND={"nhh":("n","HH_all"),"nchg":("n","HH_change"),"nhv":("n","HV_all"),"nhvchg":("n","HV_change"),"nratio":("n",("HH_all","HV_all")),
       "svv":("ss","VV_all"),"svh":("ss","VH_all"),"svvchg":("ss","VV_change"),"wvvchg":("sw","VV_change"),
-      "rft":("pt",1),"rfa":("pa",1),"rfg":("pg",1),"rfw":("wet",1),"hand":("gw","hand_01"),"gwt":("th","gw_thermal"),"snow":("th","snowfree_resid"),"seep":("sc",1),"geo":("geo",1),"swt":("gw","ssurgo_wt_cm"),"econ":("eco","night_winter"),"ndmi":("s2","ndmi_latesummer")}   # tuple = first minus second (dB); int = band number
+      "rft":("pt",1),"rfa":("pa",1),"rfg":("pg",1),"rfw":("wet",1),"hand":("gw","hand_01"),"gwt":("th","gw_thermal"),"snow":("th","snowfree_resid"),"seep":("sc",1),"geo":("geo",1),"swt":("gw","ssurgo_wt_cm"),"econ":("eco","night_winter"),"ndmi":("s2","ndmi_latesummer"),"cohd":("coh","coh_D_mean12"),"coha":("coh","coh_A_mean12"),"cohdrop":("coh","coh_D_drop")}   # tuple = first minus second (dB); int = band number
 KEYS=sys.argv[1:] or list(BAND)
 R={"nhh":dict(cmap="gray",lo=-14,hi=-2,sym=False),"nchg":dict(cmap="BrBG",lo=-2.5,hi=2.5,sym=True),"nhv":dict(cmap="gray",lo=-20,hi=-8,sym=False),
    "nhvchg":dict(cmap="BrBG",lo=-2.5,hi=2.5,sym=True),"nratio":dict(cmap="Purples",lo=3,hi=8.5,sym=False),
@@ -22,6 +22,7 @@ R={"nhh":dict(cmap="gray",lo=-14,hi=-2,sym=False),"nchg":dict(cmap="BrBG",lo=-2.
    "rft":dict(cmap="YlGnBu",lo=0,hi=1,sym=False),"rfa":dict(cmap="YlGnBu",lo=0,hi=1,sym=False),
    "rfg":dict(cmap="YlGnBu",lo=0,hi=1,sym=False),"hand":dict(cmap="YlGnBu_r",lo=0,hi=10,sym=False),"swt":dict(cmap="YlGnBu_r",lo=0,hi=200,sym=False),
    "gwt":dict(cmap="RdBu_r",lo=-2,hi=2,sym=True),"econ":dict(cmap="RdBu_r",lo=-2,hi=2,sym=True),"ndmi":dict(cmap="BrBG",lo=-0.1,hi=0.1,sym=True),"snow":dict(cmap="PuOr_r",lo=-0.3,hi=0.3,sym=True),
+   "cohd":dict(cmap="cividis",lo=0.2,hi=0.9,sym=False),"coha":dict(cmap="cividis",lo=0.1,hi=0.65,sym=False),"cohdrop":dict(cmap="BrBG",lo=-0.2,hi=0.2,sym=True),
    "seep":dict(cmap=None,lo=0,hi=1,sym=False,cats=[[1,"#e7298a","Seep candidate (thermal)"]]),
    "geo":dict(cmap=None,lo=0,hi=5,sym=False,cats=[[1,"#d8c48f","Eminence Dolomite"],[2,"#9cc0a8","Gasconade Dolomite"],[3,"#b79bc6","Potosi Dolomite"],[4,"#8ea1cf","Davis Formation"],[5,"#d6a07a","Roubidoux Formation"]]),
    "rfw":dict(cmap=None,lo=0,hi=2,sym=False,cats=[[1,"#8fbde0","Wet at the lenient (ROC) cut-off only"],[2,"#1f5fa8","Wet at the strict (F1) cut-off"]])}
@@ -127,5 +128,12 @@ D["rob"]={"sets":{k:{f:v[f] for f in ("ap_ci","ap_no_edge","ap_fold")} for k,v i
           "edge_share":RB["edge_share_of_wetland"],"no_skill_no_edge":RB["no_skill_ap_no_edge"],"random_cv":RB["random_cv"],
           "emergent":{k:{m:v[m]["open"]|{"fen_pct_all":v[m]["fen_pct_all"]} for m in ("standard","held_out")} for k,v in RB["emergent_holdout"].items()},
           "learners":RB["learners"],"dl":{k:DL[k] for k in ("unet","pixel")}}
+# NISAR GUNW coherence: composites, viewing geometry, random-forest ablation (Wetland2026/scripts/37-40)
+GD=P+"data/SAR/NISAR/GUNW/"; CE=json.load(open(GD+"coherence_eval.json")); CG=json.load(open(GD+"coherence_geometry.json")); CR=json.load(open(MD+"coherence_rf.json"))
+D["coh"]={"pairs":pd.read_csv(GD+"granules.csv")[["direction","ref","sec","days"]].astype({"ref":str,"sec":str}).to_dict("records"),
+          "comp":{k:{f:v.get(f) for f in ("fen_median","fen_pct_open","fen_pct_valley_open","open_median","forest_median","auc_open","auc_open_no_edge","auc_emergent_open")} for k,v in CE["composites"].items()},
+          "geom":{d:{f:g[f] for f in ("fen_lia_median","fen_shadow_share","fen_near_share","geometry_r2_open","fen_pct_open_raw","fen_pct_open_residual")}|{"inc":round(g["los"]["inc"],1)} for d,g in CG.items()},
+          "rf":{"sets":{k:{f:v[f] for f in ("ap","ap_ci","ap_no_edge","auc_open","fen_pct_all")} for k,v in CR["sets"].items()},"paired":CR["paired"],
+                "emergent":CR["emergent_holdout"],"best_rank":min(r for f,(r,_) in CR["impurity_rank"].items() if f.startswith("coh_")),"n_feat":len(json.loads(str(np.load(MD+"rf_cache.npz")["sets"]))["all_gw_s2"])+len(CR["features"])}}
 s=json.dumps(D,separators=(",",":")).replace("</","<\\/"); open("data7.json","w").write(s)
 print(len(s)/1e6,"MB",{k:{c:len(json.dumps(D[c][k]))//1000 for c in ("ws2d","site2d","ws3d","site3d")} for k in KEYS})

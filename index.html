@@ -132,7 +132,10 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
         <button type="button" data-l="nhv" aria-pressed="false">HV</button>
         <button type="button" data-l="nratio" aria-pressed="false">HH − HV</button>
         <button type="button" data-l="nchg" aria-pressed="false">HH wet − dry</button>
-        <button type="button" data-l="nhvchg" aria-pressed="false">HV wet − dry</button></div></div>
+        <button type="button" data-l="nhvchg" aria-pressed="false">HV wet − dry</button>
+        <button type="button" data-l="cohd" aria-pressed="false">Coherence, evening</button>
+        <button type="button" data-l="coha" aria-pressed="false">Coherence, morning</button>
+        <button type="button" data-l="cohdrop" aria-pressed="false">Coherence dry − transition</button></div></div>
       <div class="lg"><span class="lbl">Sentinel-1 C-band</span><div class="seg" role="group" aria-label="Sentinel-1 layers">
         <button type="button" data-l="svv" aria-pressed="false">VV</button>
         <button type="button" data-l="svh" aria-pressed="false">VH</button>
@@ -335,6 +338,24 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
   </section>
   <section>
     <div class="sechead">
+      <h2>NISAR interferometric coherence</h2>
+      <p>NISAR L2 GUNW Provisional, HH coherence at 20 m, averaged to the 16 m grid. 16 pairs, 26 June to 13 October 2026: 8 on the evening descending pass (track 12, looking east) and 8 on the dawn ascending pass (track 4, looking west). Each track has seven 12-day pairs and one 24-day pair across the missing early-August pass. Only the window over the watershed was read from each product.</p>
+    </div>
+    <div class="row">
+      <div class="panel">
+        <div class="ptitle"><span>Composites, open land</span><span>Barton Fen and AUC</span></div>
+        <div class="tblwrap"><table class="nwit" id="cohcomp"></table></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle"><span>Added to the best model</span><span>AP, 95% interval</span></div>
+        <div class="tblwrap"><table class="nwit" id="cohrf"></table></div>
+      </div>
+    </div>
+    <p class="note">Fen percentile = share of open-land cells with lower coherence than the fen's median. AUC compares NWI vegetated wetland with other open land (0.5 = no skill; below 0.5 = wetlands are <em>less</em> coherent). Emergent = NWI emergent cells against non-wetland open land.</p>
+    <p class="note" id="cohnote"></p>
+  </section>
+  <section>
+    <div class="sechead">
       <h2>Sentinel-1 C-band radar</h2>
       <p>OPERA RTC-S1 (30 m, VV and VH), one ascending burst at about 7 pm local, 2026. Passes are grouped by the same rule as NISAR: wet = at least 40 mm of rain in the 7 days before the pass (hourly Stage IV up to the pass) and a soil store of at least 190 mm; dry = at most 15 mm and at most 180 mm. Winter = leaves off, January to early April; a pass on a freezing day (23 Jan) is dropped.</p>
     </div>
@@ -408,6 +429,7 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
       <li><b>Hydroperiod.</b> Mean days per year the model holds a cell at saturation (2003–2025, Stage IV rainfall, gridMET evapotranspiration, 250 mm root-zone store). With SSURGO soil the floodplain gravels drain fast and many NWI wetlands look dry. With uniform soil the map tracks 16 m TWI more closely. Open water (NHD) is masked and shows as grey relief.</li>
       <li><b>Saturation calendar.</b> The model never dries the whole fen: 3 of its 19 cells stay saturated every day. The rest is wettest from December to June and drains from July to November, most in dry years such as 2012, 2014 and 2017. Saturation peaks in May, about two months after the measured soil water at Salem, because water from the hillslopes reaches the valley floor late. NWI codes the fen <code>B</code> (saturated most of the year), which suggests groundwater keeps it wet when rain alone would not. Testing that needs water-table records at the fen.</li>
       <li><b>NISAR radar.</b> L-band backscatter is almost unrelated to TWI (rank correlation about 0) and much weaker on its own (AUC about 0.6 against 0.8–0.9 for TWI). Wetlands in forest are brighter in HH, as expected from trunk–water double bounce. NWI emergent wetlands brighten more after rain than other open ground, but there are only 327 such cells. Switch to <em>NISAR HH wet − dry</em> and look along the valley floors.</li>
+      <li><b>NISAR coherence.</b> Switch between <em>Coherence, evening</em> and <em>Coherence, morning</em> and look at the fen: it is one of the most stable open-land spots in the evening and one of the least stable at dawn. Geometry is ruled out; the time of day is the open question. Coherence does not improve the wetland model (see the coherence section).</li>
       <li><b>Combined model.</b> Terrain alone (TWI, slope, hydroperiod, land cover) already reaches AUC 0.97 against NWI; most of the gain over TWI comes from slope. Adding radar barely moves AUC but makes the top of the ranking cleaner (AP 0.46 → 0.53) and helps most in open land (AUC 0.74 → 0.82 with NISAR). Single radar features look unimportant in the shuffle test only because the radar features carry overlapping information; dropping all radar is what lowers the score. Barton Fen's probability falls from <span class="fp" data-k="topo"></span> (terrain) to <span class="fp" data-k="topo_all"></span> (with radar): its radar signature, bright but unresponsive to rain, is unlike the mostly forested NWI wetlands the model learns from.</li>
       <li><b>Groundwater proxies.</b> Height above the nearest stream is the strongest single predictor of NWI found so far (AUC 0.97 in forest, 0.91 in open land, against 0.91 and 0.80 for TWI), and adding it lifts the model to AP 0.70. The SSURGO water table and drainage class run the <em>wrong</em> way: the soil survey rates the floodplain gravels as deep and well drained, and it rates the fen excessively drained with no water table within 2 m. The fen’s median probability falls as groundwater inputs are added (<span class="fp" data-k="all_gw_s2"></span> in the best model), but it still ranks near the 95th percentile of all cells and is wet at the lenient cut-off; most of the drop comes from SSURGO, which wrongly rates the fen well drained with no hydric soil. NWI here is mostly floodplain forest, and the model ranks emergent wetlands by valley position rather than as a type of their own (see the hold-out table below). Finding fens will need their own labels (field points) rather than more NWI-trained inputs.</li>
       <li><b>Landsat thermal and seeps.</b> Switch to <em>Winter-warm, summer-cool</em> or <em>Snow-free</em> and look at the fen: it is one of the few valley-floor spots that stays warm in winter, cool in summer and clear of snow, as groundwater at ~13 °C would make it. NWI wetlands as a whole show no such signal, so adding thermal and geology to the NWI-trained model does not help it (AP <span id="apfull"></span> against <span id="apgw"></span>). <em>Seep candidates</em> applies the fen's signature to the whole valley floor without NWI: these are the places to visit next, after ruling out roads.</li>
@@ -420,7 +442,7 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
 
   <footer>
     <div>Source DEM: <code>data/LiDAR/USGS_3DEP_1m/dem_1m_110100070301_buf200.tif</code> (EPSG:26915, 16,294 × 11,637 px). Boundary: <code>data/boundaries/pilot_huc12.gpkg</code>. Site: <code>data/StudySite/study_site.gpkg</code>.</div>
-    <div>NISAR: <code>data/SAR/NISAR/stack/desc_t012_summary_16m.tif</code> from <code>scripts/19_nisar_stack.py</code> (L2 GCOV Provisional, track 12 descending, frame 69). Sentinel-1: <code>data/SAR/Sentinel1/stack/</code> from <code>scripts/21_s1_stack.py</code> (OPERA RTC-S1, burst T165_352480_IW2). Model: <code>data/model/</code> from <code>scripts/23_rf_model.py</code>. Land cover: NLCD 2021.</div>
+    <div>NISAR: <code>data/SAR/NISAR/stack/desc_t012_summary_16m.tif</code> from <code>scripts/19_nisar_stack.py</code> (L2 GCOV Provisional, track 12 descending, frame 69). Coherence: <code>data/SAR/NISAR/GUNW/coh_16m.tif</code> from <code>scripts/37_fetch_gunw.py</code>–<code>40_coherence_geometry.py</code> (L2 GUNW Provisional, tracks 12 and 4). Sentinel-1: <code>data/SAR/Sentinel1/stack/</code> from <code>scripts/21_s1_stack.py</code> (OPERA RTC-S1, burst T165_352480_IW2). Model: <code>data/model/</code> from <code>scripts/23_rf_model.py</code>. Land cover: NLCD 2021.</div>
     <div>Display copies are downsampled; analysis runs on the full 1 m grid.</div>
   </footer>
 </div>
@@ -459,6 +481,12 @@ const LY = {
     hint: "L-band cross-polarised (HV) backscatter, mean of the same 9 passes, 16 m grid. Mostly volume scattering from branches and canopy, so it tracks how much woody vegetation there is. Brighter = more." },
   nhvchg: { lab: "HV wet − dry", ramp: D.ramps.nhvchg.hex, lo: D.ramps.nhvchg.lo, hi: D.ramps.nhvchg.hi, unit: " dB", dp: 1,
     hint: "Mean HV of the 4 passes after rain minus the 4 dry-spell passes, 16 m grid. Blue-green = brighter after rain. The watershed median is about +0.5 dB, partly wetter leaves and wood." },
+  cohd: { lab: "Coherence, evening pass", ramp: D.ramps.cohd.hex, lo: D.ramps.cohd.lo, hi: D.ramps.cohd.hi, unit: "", dp: 2,
+    hint: "NISAR L-band HH interferometric coherence, mean of seven 12-day pairs, descending track 12 (about 8 pm local, looking east), 27 Jun – 13 Oct 2026, 20 m product averaged to the 16 m grid. 1 = the ground scatters the same way on both dates; low = it changed (growth, mowing, wetting, water). Barton Fen is among the highest open-land cells on this pass." },
+  coha: { lab: "Coherence, morning pass", ramp: D.ramps.coha.hex, lo: D.ramps.coha.lo, hi: D.ramps.coha.hi, unit: "", dp: 2,
+    hint: "Same as the evening layer, ascending track 4 (about 6 am local, looking west), 26 Jun – 12 Oct 2026. Coherence is lower everywhere on this pass, so the colour range is lower too (0.10–0.65 against 0.20–0.90). Barton Fen is among the lowest open-land cells: the opposite of the evening pass. Viewing geometry does not explain it; dew or cold air pooling on the valley floor at dawn might." },
+  cohdrop: { lab: "Coherence, dry − transition", ramp: D.ramps.cohdrop.hex, lo: D.ramps.cohdrop.lo, hi: D.ramps.cohdrop.hi, unit: "", dp: 2,
+    hint: "Evening pass: mean coherence of the dry-season pairs (6 Sep onward) minus the pair spanning the late-August change. Planned as a 'stays wet' signal. It separates NWI wetlands from other open land modestly (AUC 0.65; 0.77 for emergent wetlands) but does not single out the fen." },
   svv: { lab: "S1 VV", ramp: D.ramps.svv.hex, lo: D.ramps.svv.lo, hi: D.ramps.svv.hi, unit: " dB", dp: 1,
     hint: "Sentinel-1 C-band VV backscatter (OPERA RTC, 30 m, shown on the 16 m grid), mean of 12 summer passes, 4 Jun – 21 Oct 2026. C-band mostly sees leaves in forest and the top few cm of soil in open ground." },
   svh: { lab: "S1 VH", ramp: D.ramps.svh.hex, lo: D.ramps.svh.lo, hi: D.ramps.svh.hi, unit: " dB", dp: 1,
@@ -871,6 +899,17 @@ document.getElementById("nisarauc").innerHTML = `<tr><th>Layer</th><th>Forest ($
   NROW.map(([k, n]) => `<tr><td>${n}</td><td class="num">${NS.auc.forest.v[k].toFixed(2)}</td><td class="num">${NS.auc.open.v[k].toFixed(2)}</td></tr>`).join("");
 const FP = NS.fen.percentile_among_open, FM = NS.fen.median;
 document.getElementById("nisarfen").innerHTML = `<b>Barton Fen</b> (${NS.fen.n_cells} cells at 16 m): median HH ${fmt(FM.HH_all, 1)} dB, brighter than ${fmt(FP.HH_all)}% of non-wetland open ground. Its wet − dry change (+${fmt(FM.HH_change, 2)} dB) is lower than ${fmt(100 - FP.HH_change)}% of open ground, so the fen barely responds to rain. That fits a groundwater-fed fen, but 34 cells are close to the speckle limit.`;
+const CO = D.coh, COH_N = [["D_mean12", "Evening, mean of 12-day pairs"], ["A_mean12", "Dawn, mean of 12-day pairs"], ["D_wet", "Evening, wet season"], ["D_dry", "Evening, dry season"], ["D_drop", "Evening, dry − transition"], ["A_drop", "Dawn, dry − transition"]];
+const cf2 = v => v == null ? "—" : v.toFixed(2);
+document.getElementById("cohcomp").innerHTML = "<tr><th>Composite</th><th>Fen</th><th>Fen percentile</th><th>Open median</th><th>AUC open</th><th>AUC emergent</th></tr>" +
+  COH_N.map(([k, n]) => { const c = CO.comp[k]; return `<tr><td>${n}</td><td class="num">${cf2(c.fen_median)}</td><td class="num">${fmt(c.fen_pct_open, 1)}</td><td class="num">${cf2(c.open_median)}</td><td class="num">${cf2(c.auc_open)}</td><td class="num">${cf2(c.auc_emergent_open)}</td></tr>`; }).join("");
+const COS = CO.rf.sets, COP = CO.rf.paired, cci = a => `${a[0].toFixed(2)}–${a[1].toFixed(2)}`, cdd = x => `${x.diff >= 0 ? "+" : "−"}${Math.abs(x.diff).toFixed(3)} (${x.ci.map(v => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(3)).join(" to ")})`;
+document.getElementById("cohrf").innerHTML = "<tr><th>Model</th><th>AP</th><th>Change</th><th>Fen pct</th></tr>" +
+  [["all_gw_s2", "Best model", null], ["all_gw_s2_cohD", "+ evening coherence", "all_gw_s2_cohD - all_gw_s2"], ["all_gw_s2_coh", "+ both passes", "all_gw_s2_coh - all_gw_s2"],
+   ["topo", "Terrain only", null], ["topo_coh", "Terrain + coherence", "topo_coh - topo"]]
+  .map(([k, n, pk]) => `<tr><td>${n}</td><td class="num">${COS[k].ap.toFixed(3)} (${cci(COS[k].ap_ci)})</td><td class="num">${pk ? cdd(COP[pk]) : "—"}</td><td class="num">${fmt(COS[k].fen_pct_all, 1)}</td></tr>`).join("");
+const COGD = CO.geom.D, COGA = CO.geom.A , COEH = CO.rf.emergent;
+document.getElementById("cohnote").innerHTML = `<b>Barton Fen</b> is near the top of open land on the evening pass (${fmt(CO.comp.D_mean12.fen_pct_open)}th percentile) and near the bottom on the dawn pass (${fmt(CO.comp.A_mean12.fen_pct_open)}th). Viewing geometry does not explain this: local incidence at the fen equals the nominal angle (${COGD.fen_lia_median}° and ${COGA.fen_lia_median}°), no cell is in radar shadow, and after removing what slope and look direction predict the fen still sits at the ${fmt(COGD.fen_pct_open_residual)}th and ${fmt(COGA.fen_pct_open_residual)}th percentiles. Dew or cold air pooling on the valley-floor meadow at dawn is the leading untested explanation. <b>In the model</b>, coherence adds nothing once groundwater and Sentinel-2 are in: AP changes by ${cdd(COP["all_gw_s2_coh - all_gw_s2"])} with both passes, the emergent hold-out AUC stays at ${COEH.all_gw_s2_coh.open_auc.toFixed(2)}, and the best coherence layer ranks ${CO.rf.best_rank}th of ${CO.rf.n_feat} inputs. It helps only a terrain-only model (${cdd(COP["topo_coh - topo"])}).`;
 await Promise.all([ensure("twi"), ensure(layer)]);
 const S1 = D.s1, SNAME = { VV_all: "VV, mean", VH_all: "VH, mean", VV_minus_VH: "VV − VH", VV_change: "VV, wet − dry", VH_change: "VH, wet − dry", twi_16m: "TWI 16 m (reference)" };
 document.getElementById("s1pass").innerHTML = "<tr><th>Pass (UTC)</th><th>Season</th><th>Group</th><th>Rain, 7 d</th><th>Soil store</th><th>VV</th><th>VH</th></tr>" +

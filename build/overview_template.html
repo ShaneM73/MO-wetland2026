@@ -204,6 +204,7 @@ const L = [
   { id: "swt", img: "ws2d_swt", name: "SSURGO water table", fam: "soil", src: "USDA NRCS SSURGO", res: "map-unit polygons", what: "Surveyed depth to the seasonal water table, drainage class, hydric share.", found: "Runs the wrong way here: floodplain gravels rated deep and well drained; the fen rated well drained." },
   { id: "geo", img: "ws2d_geo", name: "Bedrock geology", fam: "soil", src: "Missouri Geological Survey 1:100,000", res: "polygons", what: "Bedrock units, contacts, faults, springs, alluvium.", found: "Alluvium and Potosi Dolomite mark valley floors, already captured by HAND; no gain in the model." },
   { id: "nhh", img: "ws2d_nhh", name: "NISAR L-band HH", fam: "radar", src: "NASA-ISRO NISAR L2 GCOV (provisional), 8 dates Jun–Oct 2026", res: "~10–20 m", what: "24 cm radar penetrates canopy; wetter soil and flooded trunks brighten HH.", found: "Adds AP +0.06 over terrain; one of the first applied uses of real NISAR data." },
+  { id: "cohd", img: "ws2d_cohd", name: "NISAR coherence", fam: "radar", src: "NASA-ISRO NISAR L2 GUNW (provisional), 16 pairs Jun–Oct 2026, evening and dawn passes", res: "20 m", what: "How much the radar echo stays the same over 12 days; stable ground stays coherent.", found: "Barton Fen is extreme on both passes, high in the evening and low at dawn, but the model gains nothing (AP −0.011)." },
   { id: "svv", img: "ws2d_svv", name: "Sentinel-1 C-band VV", fam: "radar", src: "ESA Sentinel-1 via OPERA RTC, summer and leaf-off stacks", res: "~10–20 m", what: "5.6 cm radar senses the canopy and top soil.", found: "Adds AP +0.08 over terrain; the two radars together +0.06 on top of HAND and soils." },
   { id: "ndmi", img: "ws2d_ndmi", name: "Sentinel-2 moisture", fam: "optical", src: "ESA Sentinel-2 L2A, 417 scenes 2017–2026", res: "10 m", what: "Seasonal greenness (NDVI) and moisture (NDMI) anomalies.", found: "Small, significant gain (AP +0.027): mostly the bottomland-forest canopy signature." },
   { id: "gwt", img: "ws2d_gwt", name: "Landsat thermal", fam: "thermal", src: "Landsat 8/9 surface temperature, 2013–2026", res: "100 m (delivered at 30 m)", what: "Winter-warm / summer-cool anomaly after removing sun exposure: a groundwater signature.", found: "No effect on the model (AP −0.012); the fen stands out by day only." },
@@ -213,7 +214,7 @@ const L = [
   { id: "rfg", img: "ws2d_rfg", name: "Wetland probability", fam: "output", src: "Random forest, out-of-fold", res: "16 m", what: "Probability that a cell is NWI wetland, from terrain + radar + soils + Sentinel-2.", found: "AP 0.72 (95% interval 0.61–0.80) against 0.025 by chance." },
   { id: "rfw", img: "ws2d_rfw", name: "Wetland map", fam: "output", src: "Probability with two cut-offs", res: "16 m", what: "Dark blue: wet at the strict (F1) cut-off. Light blue: wet only at the lenient (Youden) cut-off.", found: "Strict map: 268 ha mapped, 69% of NWI found, 63% precision." },
 ];
-const INPUTS = ["elev", "twi16", "hand", "swt", "geo", "nhh", "svv", "ndmi", "gwt", "econ"];
+const INPUTS = ["elev", "twi16", "hand", "swt", "geo", "nhh", "cohd", "svv", "ndmi", "gwt", "econ"];
 
 /* ---------- steps ---------- */
 const S = N.sets, P = N.paired, LR = N.learners;
@@ -247,7 +248,7 @@ const STEPS = [
     <p class="lead">Ten input layers from six families, all free and available statewide. Click any layer in the list on the stack for what it measures and what it showed.</p>
     <table><tr><th>Family</th><th>Layers</th><th>Resolution</th></tr>
       <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--terrain)"></i> Terrain</td><td>1 m LiDAR DEM → TWI, slope, height above stream (HAND), distance to stream, modelled saturation frequency</td><td class="n">1–16 m</td></tr>
-      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--radar)"></i> Radar</td><td>NISAR L-band HH/HV (8 dates, 2026); Sentinel-1 C-band VV/VH (summer and leaf-off); wet − dry change</td><td class="n">10–20 m</td></tr>
+      <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--radar)"></i> Radar</td><td>NISAR L-band HH/HV (8 dates, 2026) and HH coherence (16 pairs, two passes); Sentinel-1 C-band VV/VH (summer and leaf-off); wet − dry change</td><td class="n">10–20 m</td></tr>
       <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--optical)"></i> Optical</td><td>Sentinel-2 NDVI and NDMI seasonal anomalies</td><td class="n">10 m</td></tr>
       <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--thermal)"></i> Thermal</td><td>Landsat 8/9 day; ECOSTRESS day and night</td><td class="n">70–100 m</td></tr>
       <tr><td><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--soil)"></i> Soils, geology</td><td>SSURGO water table, drainage, hydric share; bedrock units, contacts, springs</td><td class="n">polygons</td></tr>
@@ -275,7 +276,7 @@ const STEPS = [
       <li><b>Label edges.</b> ${pct(N.edge_share)} of NWI cells touch a polygon edge, where a 16 m label is least certain; every model is also scored without them.</li>
     </ul>` },
   { tab: "What each source adds", view: { show: [...INPUTS, "rfg"], gap: 14, rx: 58, rz: -36, hl: ["rfg"], dimInputs: true }, html: () => `
-    <p class="lead">Height above the stream is the big step; radar adds a clear second step; Sentinel-2 a small one. Thermal data and extra layers make the model worse.</p>
+    <p class="lead">Height above the stream is the big step; radar adds a clear second step; Sentinel-2 a small one. Thermal data, NISAR coherence and extra layers make the model worse.</p>
     <div id="abl"></div>
     <div class="legendrow"><span><i style="background:var(--accent)"></i>map model</span><span><i style="background:var(--muted)"></i>other input sets</span><span>— 95% interval</span><span><s></s>chance (${fmt(N.share, 3)})</span></div>
     <table><tr><th>Adding…</th><th style="text-align:right">AP change</th></tr>
@@ -285,6 +286,7 @@ const STEPS = [
       <tr><td>SSURGO soils (to terrain + HAND)</td><td class="n">${gain("topo_gw - topo_hand")}</td></tr>
       <tr><td>Both radars (to terrain + HAND + soils)</td><td class="n">${gain("all_gw - topo_gw")}</td></tr>
       <tr><td>Sentinel-2 phenology</td><td class="n">${gain("all_gw_s2 - all_gw")}</td></tr>
+      <tr><td>NISAR coherence, both passes (to the map model)</td><td class="n">${gain("all_gw_s2_coh - all_gw_s2")}</td></tr>
       <tr><td>Landsat thermal</td><td class="n">${gain("all_gw_th - all_gw")}</td></tr>
       <tr><td>ECOSTRESS thermal</td><td class="n">${gain("all_gw_eco - all_gw")}</td></tr>
       <tr><td>Everything else (geology, thermal)</td><td class="n">${gain("full - all_gw_s2")}</td></tr>
