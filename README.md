@@ -4,7 +4,7 @@ Interactive viewer for the Missouri wetland-mapping pilot: HUC12 110100070301 (S
 
 **▶ Open the viewer: https://shanem73.github.io/MO-wetland2026/**
 
-**▶ Barton Fen drone survey: https://shanem73.github.io/MO-wetland2026/drone.html**: drone orthophoto (3 cm) and LiDAR surface model (6 cm) from 15 April 2025, with height above the USGS bare-earth DEM, the study site and NWI, and a swipe comparison. Tiles in `data/drone/`.
+**▶ Barton Fen drone survey: https://shanem73.github.io/MO-wetland2026/drone.html**: drone orthophoto (3 cm) and LiDAR surface model (6 cm) from 15 April 2025, with height above the USGS bare-earth DEM, the study site and NWI: a 2D map with swipe comparison and a 3D view (orthophoto, height or elevation draped on the LiDAR surface, morphing to bare earth). `drone.html#3d` opens the 3D view. Tiles in `data/drone/`.
 
 **▶ Project overview for presentations: https://shanem73.github.io/MO-wetland2026/overview.html**: a nine-step 3D walk-through (question, study area, data, method, validation, results, Barton Fen, next steps). Arrow keys step through it; F toggles full-screen presentation mode.
 
