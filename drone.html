@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barton Fen drone survey</title>
+<meta name="description" content="Barton Fen, Missouri: drone LiDAR surface model (6 cm) and orthophoto (3 cm) from 15 April 2025, with the study site, NWI and the USGS 1 m bare-earth DEM for comparison.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --bg: #f3f5f2; --panel: #ffffff; --fg: #1c2622; --muted: #5d6b64; --rule: #d5ddd7;
+  --site: #e0218a; --accent: #1f6f5c; --nwi-veg: #eb6834; --foot: #1c2622;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33;
+  --site: #ff5cbf; --accent: #5cc3a4; --nwi-veg: #d95926; --foot: #e3ebe6; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121815; --panel: #1a221e; --fg: #e3ebe6; --muted: #98a89f; --rule: #2d3a33;
+  --site: #ff5cbf; --accent: #5cc3a4; --nwi-veg: #d95926; --foot: #e3ebe6; color-scheme: dark }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 18px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.4rem, 2.6vw, 2rem); line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 1.15rem; margin: 0 0 6px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+header { display: grid; gap: 10px; }
+header p { margin: 0; color: var(--muted); max-width: 80ch; }
+.links a { color: var(--accent); font-weight: 600; text-underline-offset: 3px; margin-right: 18px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding-block: 12px; }
+.fact { display: grid; }
+.fact b { font-family: var(--mono); font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; }
+.fact span { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.wrap { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 14px; align-items: start; }
+.ctl { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; display: grid; gap: 14px; font-size: 14px; }
+.ctl fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ctl legend { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; padding: 0; }
+.ctl label { display: flex; gap: 8px; align-items: baseline; cursor: pointer; }
+.ctl label.off { color: var(--muted); cursor: not-allowed; }
+.ctl label small { color: var(--muted); }
+.ctl select, .ctl button { font: inherit; font-size: 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 8px; }
+.ctl button { cursor: pointer; }
+.ctl button:hover { border-color: var(--accent); }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { display: inline-block; width: 14px; height: 10px; border: 2px solid; border-radius: 2px; flex: none; transform: translateY(1px); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.mapbox { position: relative; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: #2a2f2c; }
+#map { height: min(78vh, 820px); min-height: 420px; background: #2a2f2c; }
+.readout { position: absolute; left: 10px; bottom: 10px; z-index: 800; background: color-mix(in srgb, var(--panel) 92%, transparent); color: var(--fg); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; font-family: var(--mono); font-size: 12px; line-height: 1.45; pointer-events: none; font-variant-numeric: tabular-nums; min-width: 230px; }
+.readout b { font-weight: 500; }
+.legend { position: absolute; right: 10px; bottom: 22px; z-index: 800; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; font-size: 12px; display: grid; gap: 4px; max-width: 240px; }
+.legend .bar { height: 10px; border-radius: 2px; }
+.legend .ticks { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.legend:empty { display: none; }
+.swipe { position: absolute; top: 0; bottom: 0; width: 0; z-index: 790; display: none; }
+.swipe::before { content: ""; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+.swipe .h { position: absolute; top: 50%; left: -16px; width: 32px; height: 32px; margin-top: -16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: ew-resize; display: grid; place-items: center; color: #1c2622; font: 600 13px var(--mono); touch-action: none; }
+.swlab { position: absolute; top: 10px; margin-left: 44px; z-index: 800; font-size: 12px; font-family: var(--mono); background: rgba(28,38,34,.8); color: #fff; padding: 2px 8px; border-radius: 4px; display: none; pointer-events: none; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; }
+.card p, .card ul { margin: 0 0 8px; max-width: 75ch; }
+.card ul { padding-left: 1.2em; }
+.card li { margin-bottom: 4px; }
+.leaflet-container { font-family: var(--body); }
+.leaflet-control-attribution { font-size: 10px; }
+@media (max-width: 820px) {
+  .wrap { grid-template-columns: 1fr; }
+  #map { height: 66vh; }
+  .readout { min-width: 0; font-size: 11px; }
+  .legend { bottom: auto; top: 10px; right: 10px; }
+  .readout { display: none; }
+  .swlab { top: auto; bottom: 30px; margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">Barton Fen study site · drone survey</div>
+  <h1>Drone LiDAR and orthophoto, 15 April 2025</h1>
+  <p>A close look at the fen and the valley around it: a 3 cm colour orthophoto and a 6 cm LiDAR surface model from one leaf-off flight, set beside the USGS 1 m bare-earth DEM used in the watershed model. For viewing only; nothing here feeds the model yet.</p>
+  <p class="links"><a href="index.html">← Watershed viewer</a><a href="overview.html">Project overview</a></p>
+  <div class="facts" id="facts"></div>
+</header>
+
+<div class="wrap">
+  <div class="ctl">
+    <fieldset id="main"><legend>Layer</legend></fieldset>
+    <div><label for="op" style="justify-content:space-between"><span>Opacity</span><span id="opv" style="font-family:var(--mono);font-size:12px"></span></label><input type="range" id="op" min="0" max="100" value="100"></div>
+    <fieldset><legend>Compare (swipe)</legend><select id="cmp"></select></fieldset>
+    <fieldset id="ovl"><legend>Overlays</legend></fieldset>
+    <div class="btns"><button id="zsite">Zoom to study site</button><button id="zall">Whole flight</button></div>
+  </div>
+  <div class="mapbox">
+    <div id="map"></div>
+    <div class="swipe" id="swipe"><div class="h" id="swh">⇆</div></div>
+    <div class="swlab" id="swl1"></div><div class="swlab" id="swl2"></div>
+    <div class="readout" id="ro">Move over the map for values</div>
+    <div class="legend" id="lg"></div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="card">
+    <h2>What the layers show</h2>
+    <ul>
+      <li><b>Orthophoto</b>: colour mosaic from the drone camera, 3 cm pixels, early spring before leaf-out.</li>
+      <li><b>Drone surface relief</b>: the LiDAR surface model (tops of whatever the pulses hit: ground in the open fen, tree crowns in the woods), shaded and coloured by elevation.</li>
+      <li><b>Height above bare earth</b>: drone surface minus the USGS 1 m bare-earth DEM, at 25 cm. Pale = within 0.5 m of the ground (open fen, meadow); green = shrubs and trees; grey = surface more than 1 m below the USGS ground, mostly artefacts along the flight edge.</li>
+      <li><b>USGS 1 m bare earth</b>: the 3DEP DEM the watershed model uses, same colours, for comparison of detail.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Caveats</h2>
+    <ul>
+      <li>The files are marked <i>Preliminary</i>. Elevations were delivered about 26.05 m lower than NAVD88 (ellipsoid rather than geoid heights, by the look of it); the offset is constant across open ground, so the page adds 26.05 m to match the USGS DEM.</li>
+      <li>This is a surface model, not bare earth: the drone point cloud would be needed to classify ground returns and build a 6 cm terrain model.</li>
+      <li>Values in the readout are 1 m averages; the map tiles carry the full detail.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>Next: LiDAR intensity</h2>
+    <p>Intensity is the strength of each returned pulse. Near-infrared LiDAR is absorbed by water, so saturated peat, seeps and open water return weaker pulses than dry ground under the same vegetation. With the point cloud or an intensity raster, the fen's wettest cells could be mapped directly at decimetre scale and compared with the watershed model's predictions and the study-site outline. The layer list already has a slot for it.</p>
+  </div>
+</div>
+</main>
+
+<script>
+const B = "data/drone/";
+const T = (k) => `${B}${k}/{z}/{x}/{y}.webp`;
+const LAYERS = {
+  ortho:  { name: "Orthophoto", note: "3 cm", nz: 21 },          // + zoom 22 near the study site
+  relief: { name: "Drone surface relief", note: "6 cm", nz: 21, legend: "elev" },
+  height: { name: "Height above bare earth", note: "25 cm", nz: 20, legend: "height" },
+  bare:   { name: "USGS 1 m bare earth", note: "1 m", nz: 19, legend: "elev" },
+  none:   { name: "Satellite base only", note: "USGS" },
+};
+const ELEV = { lo: 314, hi: 358 };
+
+// UTM zone 15N (WGS84) forward projection for the readout grid
+function utm(lat, lon) {
+  const a = 6378137, f = 1 / 298.257223563, k0 = 0.9996, e2 = f * (2 - f), ep2 = e2 / (1 - e2);
+  const φ = lat * Math.PI / 180, λ = lon * Math.PI / 180, λ0 = -93 * Math.PI / 180;
+  const N = a / Math.sqrt(1 - e2 * Math.sin(φ) ** 2), t = Math.tan(φ) ** 2, C = ep2 * Math.cos(φ) ** 2, A = Math.cos(φ) * (λ - λ0);
+  const M = a * ((1 - e2 / 4 - 3 * e2 ** 2 / 64 - 5 * e2 ** 3 / 256) * φ - (3 * e2 / 8 + 3 * e2 ** 2 / 32 + 45 * e2 ** 3 / 1024) * Math.sin(2 * φ)
+          + (15 * e2 ** 2 / 256 + 45 * e2 ** 3 / 1024) * Math.sin(4 * φ) - (35 * e2 ** 3 / 3072) * Math.sin(6 * φ));
+  const x = k0 * N * (A + (1 - t + C) * A ** 3 / 6 + (5 - 18 * t + t * t + 72 * C - 58 * ep2) * A ** 5 / 120) + 500000;
+  const y = k0 * (M + N * Math.tan(φ) * (A * A / 2 + (5 - t + 9 * C + 4 * C * C) * A ** 4 / 24 + (61 - 58 * t + t * t + 600 * C - 330 * ep2) * A ** 6 / 720));
+  return [x, y];
+}
+
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $ = (id) => document.getElementById(id);
+
+fetch(B + "meta.json").then(r => r.json()).then(M => {
+  const S = M.site_stats;
+  $("facts").innerHTML = [
+    ["15 Apr 2025", "flown, leaf-off"], ["3 cm", "orthophoto"], ["6 cm", "LiDAR surface model"],
+    [`${M.area_ha} ha`, "area covered"], [`${M.site_ha} ha`, "study site"],
+    [`${(S.height_pct[1] * 100).toFixed(0)} cm`, "median height above ground, study site"],
+    [`${(S.share_over_2m * 100).toFixed(1)}%`, "of study site over 2 m tall"],
+  ].map(([b, s]) => `<div class="fact"><b>${b}</b><span>${s}</span></div>`).join("");
+
+  const bounds = L.latLngBounds(M.bounds);
+  const map = L.map("map", { zoomSnap: 0.25, maxZoom: 23, minZoom: 13, attributionControl: true }).fitBounds(bounds);
+  L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+    { maxNativeZoom: 16, maxZoom: 23, attribution: "Base: USGS The National Map" }).addTo(map);
+  map.createPane("left").style.zIndex = 300;
+  map.createPane("right").style.zIndex = 310;
+  map.createPane("ovl").style.zIndex = 420;
+  // one layer group per key; the orthophoto adds full-resolution zoom-22 tiles around the study site
+  const tl = (k, pane) => {
+    const o = { pane, bounds, minNativeZoom: 14, maxZoom: 23, attribution: k === "bare" ? "USGS 3DEP 1 m" : "Drone survey 15 Apr 2025 (preliminary)" };
+    const g = L.layerGroup([L.tileLayer(T(k), { ...o, maxNativeZoom: LAYERS[k].nz })]);
+    if (k === "ortho") g.addLayer(L.tileLayer(T(k), { ...o, bounds: L.latLngBounds(M.z22), minZoom: 22, minNativeZoom: 22, maxNativeZoom: 22 }));
+    g.setOpacity = (v) => { g.eachLayer(l => l.setOpacity(v)); return g; };
+    return g;
+  };
+
+  // main layer + opacity
+  let mainKey = "ortho", main = null, cmpKey = "", cmp = null, op = 1;
+  for (const [k, l] of Object.entries(LAYERS))
+    $("main").insertAdjacentHTML("beforeend", `<label><input type="radio" name="m" value="${k}" ${k === mainKey ? "checked" : ""}> ${l.name} <small>${l.note}</small></label>`);
+  $("main").insertAdjacentHTML("beforeend", `<label class="off" title="Waiting for the intensity data"><input type="radio" disabled> LiDAR intensity <small>not yet available</small></label>`);
+  function setMain(k) {
+    mainKey = k; if (main) map.removeLayer(main); main = null;
+    if (k !== "none") { main = tl(k, "left").setOpacity(op).addTo(map); }
+    legend(); swipeLabels();
+  }
+  $("main").addEventListener("change", e => setMain(e.target.value));
+  $("op").addEventListener("input", e => { op = e.target.value / 100; $("opv").textContent = e.target.value + "%"; if (main) main.setOpacity(op); });
+  $("opv").textContent = "100%";
+
+  // swipe compare
+  $("cmp").innerHTML = `<option value="">Off</option>` + Object.entries(LAYERS).filter(([k]) => k !== "none").map(([k, l]) => `<option value="${k}">${l.name}</option>`).join("");
+  const sw = $("swipe"), mb = document.querySelector(".mapbox");
+  let sx = 0.5;
+  function clip() {
+    const pane = map.getPane("right"); if (!cmp) { pane.style.clip = ""; return; }
+    const size = map.getSize(), x = sx * size.x;
+    const nw = map.containerPointToLayerPoint([0, 0]), se = map.containerPointToLayerPoint(size), cx = map.containerPointToLayerPoint([x, 0]).x;
+    pane.style.clip = `rect(${nw.y}px, ${se.x}px, ${se.y}px, ${cx}px)`;
+    sw.style.left = x + "px";
+    $("swl1").style.left = "10px"; $("swl2").style.right = "10px";   // label sides of the swipe
+  }
+  function swipeLabels() {
+    const on = !!cmp;
+    sw.style.display = $("swl1").style.display = $("swl2").style.display = on ? "block" : "none";
+    if (on) { $("swl1").textContent = "◀ " + LAYERS[mainKey].name; $("swl2").textContent = LAYERS[cmpKey].name + " ▶"; }
+  }
+  $("cmp").addEventListener("change", e => {
+    cmpKey = e.target.value; if (cmp) map.removeLayer(cmp); cmp = null;
+    if (cmpKey) cmp = tl(cmpKey, "right").addTo(map);
+    clip(); swipeLabels(); legend();
+  });
+  map.on("move zoom resize viewreset zoomanim", clip);
+  let drag = false;
+  $("swh").addEventListener("pointerdown", e => { drag = true; $("swh").setPointerCapture(e.pointerId); map.dragging.disable(); e.stopPropagation(); });
+  $("swh").addEventListener("pointermove", e => { if (!drag) return; const r = mb.getBoundingClientRect(); sx = Math.min(0.98, Math.max(0.02, (e.clientX - r.left) / r.width)); clip(); });
+  $("swh").addEventListener("pointerup", () => { drag = false; map.dragging.enable(); });
+  L.DomEvent.disableClickPropagation(sw);
+
+  // overlays
+  const OV = {
+    site: { name: "Study site", col: css("--site"), on: true, lyr: () => L.geoJSON(M.site, { pane: "ovl", style: { color: css("--site"), weight: 3, fill: false } }) },
+    nwi:  { name: "NWI wetlands", col: css("--nwi-veg"), on: false, lyr: () => L.geoJSON(M.nwi, { pane: "ovl", style: { color: css("--nwi-veg"), weight: 2, dashArray: "6 4", fillOpacity: 0.08 },
+            onEachFeature: (f, l) => l.bindTooltip(`${f.properties.WETLAND_TYPE}${f.properties.ATTRIBUTE ? " · " + f.properties.ATTRIBUTE : ""}`, { sticky: true }) }) },
+    foot: { name: "Drone coverage", col: "#ffffff", on: false, lyr: () => L.geoJSON(M.footprint, { pane: "ovl", style: { color: "#ffffff", weight: 1.5, dashArray: "2 4", fill: false } }) },
+  };
+  for (const [k, o] of Object.entries(OV)) {
+    o.layer = o.lyr(); if (o.on) o.layer.addTo(map);
+    $("ovl").insertAdjacentHTML("beforeend", `<label><input type="checkbox" data-k="${k}" ${o.on ? "checked" : ""}> <span class="sw" style="border-color:${o.col}"></span> ${o.name}</label>`);
+  }
+  $("ovl").addEventListener("change", e => { const o = OV[e.target.dataset.k]; e.target.checked ? o.layer.addTo(map) : map.removeLayer(o.layer); });
+  const siteB = OV.site.layer.getBounds();
+  $("zsite").onclick = () => map.flyToBounds(siteB.pad(0.6), { duration: 0.8 });
+  $("zall").onclick = () => map.flyToBounds(bounds, { duration: 0.8 });
+
+  // legend
+  function ramp(stops) { return `linear-gradient(90deg, ${stops.join(",")})`; }
+  const ELEV_STOPS = ["#2b737e", "#388a6b", "#44994b", "#78a652", "#a3b25a", "#bdab62", "#d3af8f"];
+  const H_STOPS = ["#f1fab5", "#b2df90", "#56b568", "#187b3f", "#004529"];
+  function legend() {
+    const ks = [...new Set([mainKey, cmpKey].map(k => LAYERS[k]?.legend).filter(Boolean))];
+    $("lg").innerHTML = ks.map(k => k === "elev"
+      ? `<div>Elevation (m, NAVD88)</div><div class="bar" style="background:${ramp(ELEV_STOPS)}"></div><div class="ticks"><span>${ELEV.lo}</span><span>336</span><span>${ELEV.hi}</span></div>`
+      : `<div>Height above bare earth (m)</div><div class="bar" style="background:${ramp(H_STOPS)}"></div><div class="ticks"><span>0</span><span>15</span><span>30</span></div>
+         <div style="display:flex;gap:6px;align-items:center;color:var(--muted)"><span class="sw" style="border-color:#969696;background:#969696"></span>more than 1 m below USGS ground (edge artefact)</div>`).join("");
+  }
+
+  // readout from 1 m grids
+  const G = M.grid; let SURF = null, GRD = null;
+  Promise.all(["surface_1m.bin", "ground_1m.bin"].map(f => fetch(B + f).then(r => r.arrayBuffer()))).then(([a, b]) => { SURF = new Uint16Array(a); GRD = new Uint16Array(b); });
+  const val = (A, i) => (A && A[i] !== 65535) ? G.base + A[i] * G.scale : null;
+  map.on("mousemove", e => {
+    const [x, y] = utm(e.latlng.lat, e.latlng.lng), c = Math.floor(x - G.x0), r = Math.floor(G.y1 - y);
+    const inside = c >= 0 && r >= 0 && c < G.w && r < G.h, i = r * G.w + c;
+    const s = inside ? val(SURF, i) : null, g = inside ? val(GRD, i) : null;
+    $("ro").innerHTML = `${e.latlng.lat.toFixed(6)}°, ${e.latlng.lng.toFixed(6)}°<br>`
+      + `Drone surface <b>${s != null ? s.toFixed(2) + " m" : "–"}</b><br>`
+      + `USGS ground&nbsp; <b>${g != null ? g.toFixed(2) + " m" : "–"}</b><br>`
+      + `Height above ground <b>${s != null && g != null ? (s - g).toFixed(2) + " m" : "–"}</b>`;
+  });
+  map.on("mouseout", () => { $("ro").textContent = "Move over the map for values"; });
+
+  setMain(mainKey);
+  L.control.scale({ imperial: false, position: "topleft" }).addTo(map);
+});
+</script>
+</body>
+</html>
