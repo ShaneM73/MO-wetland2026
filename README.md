@@ -34,4 +34,6 @@ The viewer is served by GitHub Pages from `index.html` at the repository root. T
 
 Sources: USGS 3DEP 1 m DEM; NWI (US Fish & Wildlife Service); NCEP Stage IV precipitation; gridMET reference ET; NOAA USCRN Salem 10 W soil moisture; NLCD 2021; SSURGO (USDA NRCS); Landsat 8/9 Collection 2 Level-2 surface temperature (USGS, via Microsoft Planetary Computer); ECOSTRESS L2T LSTE v002 (NASA JPL / LP DAAC); Sentinel-2 L2A (ESA Copernicus, via Microsoft Planetary Computer); Missouri DNR / Missouri Geological Survey bedrock geology and springs; NISAR L2 GCOV Provisional (NASA/ASF); Sentinel-1 OPERA L2 RTC-S1 (NASA JPL/ASF; contains Copernicus Sentinel data 2026). Display copies are downsampled; the analysis runs on full-resolution rasters outside this repository.
 
+Rebuilding: the scripts in `build/` regenerate `index.html`, `data/` and `overview.html` from the analysis outputs (see `build/README.md`).
+
 Local preview: `python3 -m http.server` in this folder, then open http://localhost:8000 (the page fetches its data, so opening the file directly does not work).
