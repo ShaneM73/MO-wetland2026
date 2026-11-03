@@ -1,7 +1,7 @@
 # Adds radar (NISAR, Sentinel-1) and random-forest layers, all on the 16 m TWI grid, + tables to data4.json -> data7.json
 # Categorical layers (cats) are coloured per class value; 0 and no data show as grey relief
 # 3D grids packed as uint8: value = off + u/scale, 255 = no data
-import json, base64, io, sys, numpy as np, pandas as pd, rasterio, geopandas as gpd, matplotlib
+import json, os, base64, io, sys, numpy as np, pandas as pd, rasterio, geopandas as gpd, matplotlib
 from rasterio.enums import Resampling
 from rasterio.warp import reproject
 from scipy.ndimage import distance_transform_edt as edt
@@ -131,9 +131,21 @@ D["rob"]={"sets":{k:{f:v[f] for f in ("ap_ci","ap_no_edge","ap_fold")} for k,v i
 # NISAR GUNW coherence: composites, viewing geometry, random-forest ablation (Wetland2026/scripts/37-40)
 GD=P+"data/SAR/NISAR/GUNW/"; CE=json.load(open(GD+"coherence_eval.json")); CG=json.load(open(GD+"coherence_geometry.json")); CR=json.load(open(MD+"coherence_rf.json"))
 D["coh"]={"pairs":pd.read_csv(GD+"granules.csv")[["direction","ref","sec","days"]].astype({"ref":str,"sec":str}).to_dict("records"),
-          "comp":{k:{f:v.get(f) for f in ("fen_median","fen_pct_open","fen_pct_valley_open","open_median","forest_median","auc_open","auc_open_no_edge","auc_emergent_open")} for k,v in CE["composites"].items()},
-          "geom":{d:{f:g[f] for f in ("fen_lia_median","fen_shadow_share","fen_near_share","geometry_r2_open","fen_pct_open_raw","fen_pct_open_residual")}|{"inc":round(g["los"]["inc"],1)} for d,g in CG.items()},
+          "comp":{k:{f:v.get(f) for f in ("fen_median","fen_cells","valid_share","fen_pct_open","fen_pct_valley_open","open_median","forest_median","auc_open","auc_open_no_edge","auc_emergent_open")} for k,v in CE["composites"].items()},
+          "geom":{d:{f:g.get(f) for f in ("fen_lia_median","fen_shadow_share","fen_near_share","geometry_r2_open","fen_pct_open_raw","fen_pct_open_residual","note")}|{"inc":round(g["los"]["inc"],1)} for d,g in CG.items()},
           "rf":{"sets":{k:{f:v[f] for f in ("ap","ap_ci","ap_no_edge","auc_open","fen_pct_all")} for k,v in CR["sets"].items()},"paired":CR["paired"],
                 "emergent":CR["emergent_holdout"],"best_rank":min(r for f,(r,_) in CR["impurity_rank"].items() if f.startswith("coh_")),"n_feat":len(json.loads(str(np.load(MD+"rf_cache.npz")["sets"]))["all_gw_s2"])+len(CR["features"])}}
+# robustness checks (42_model_checks.py), full resolution analysis (41) and the second watershed (43_transfer.py)
+MCF=MD+"model_checks.json"; RSF=P+"data/twi/pilot_110100070301/resolution/resolution_full.json"; CMPF=MD+"comparison_103001021306.json"
+if os.path.exists(MCF):
+    MC=json.load(open(MCF)); D["checks"]={"nested":{k:MC["nested"][k] for k in ("ap","ap_ci","nested_cutoffs","fen_cells_wet_nested","fen_cells")}|{"selected":[f["selected"] for f in MC["nested"]["folds"]]},
+        "blocks":{b:{"ap":MC["blocks"][b]["sets"]["all_gw_s2"]["ap"],"hand":MC["blocks"][b]["paired"]["topo_hand - topo"],"n":MC["blocks"][b]["blocks"]} for b in ("1500","3000","6000")} if "blocks" in MC else None,
+        "lobo":{k:MC["blocks"]["leave_one_block_out"][k] for k in ("ap_pooled","ap_range")} if "blocks" in MC else None,
+        "raster":{"ap":MC["rasterisation"]["retrained"]["all_gw_s2"]["ap"],"hand":MC["rasterisation"]["paired_retrained"]["topo_hand - topo"]},
+        "classes":MC["classes"]["by_class"]["all_gw_s2"],"fen_abl":MC["classes"]["fen_ablation"],"family":MC.get("explain",{}).get("permutation_ap_drop",{}).get("family")}
+if os.path.exists(RSF):
+    RSJ=json.load(open(RSF)); D["res"]={r:{k:[v[k]["auc_vegetated"],v[k]["ap_vegetated"]] for k in v} for r,v in RSJ["on16"].items()}
+if os.path.exists(CMPF):
+    CM=json.load(open(CMPF)); D["cmp"]={"sum":{h:{k:v[k] for k in ("cells","prevalence","emergent_cells","sets","paired","random_cv","resolution_on16","nested","by_class")} for h,v in CM["summary"].items()},"transfer":CM["transfer"]}
 s=json.dumps(D,separators=(",",":")).replace("</","<\\/"); open("data7.json","w").write(s)
 print(len(s)/1e6,"MB",{k:{c:len(json.dumps(D[c][k]))//1000 for c in ("ws2d","site2d","ws3d","site3d")} for k in KEYS})

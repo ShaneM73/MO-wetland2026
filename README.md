@@ -20,7 +20,7 @@ The viewer is served by GitHub Pages from `index.html` at the repository root. T
 | `nhh`, `nhv` | NISAR L2 GCOV L-band HH / HV backscatter (dB), mean of 9 descending passes (track 12), 27 Jun – 13 Oct 2026 |
 | `nchg`, `nhvchg` | NISAR HH / HV, mean of 4 passes after rain minus 4 dry-spell passes (dB) |
 | `nratio` | NISAR HH − HV (dB) |
-| `cohd`, `coha` | NISAR L2 GUNW HH interferometric coherence, mean of seven 12-day pairs, descending track 12 (evening) / ascending track 4 (dawn), Jun – Oct 2026 |
+| `cohd`, `coha` | NISAR L2 GUNW HH interferometric coherence, mean of seven 12-day pairs, descending track 12 (evening) / ascending track 4 (dawn), Jun – Oct 2026. Pixels where either acquisition lies outside a valid subswath (GUNW mask) are blank; on the dawn pass that is 87–88% of the watershed, including Barton Fen |
 | `cohdrop` | Descending coherence, dry-season pairs minus the late-August transition pair |
 | `svv`, `svh` | Sentinel-1 C-band VV / VH (OPERA RTC-S1, 30 m), mean of 12 summer 2026 passes (dB) |
 | `svvchg`, `wvvchg` | Sentinel-1 VV wet − dry, summer (5 vs 3 passes) and winter / leaf-off (1 vs 3 passes) |
