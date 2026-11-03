@@ -318,16 +318,29 @@ const STEPS = [
       <figure><img src="data/img/site2d_gwt.webp" alt="Fen close-up, Landsat winter minus summer anomaly" loading="lazy"><figcaption>Landsat winter − summer anomaly (100 m)</figcaption></figure>
     </div>`,
     after: () => fenChart() },
+  { tab: "Second watershed", view: { show: [...INPUTS, "nwilab", "rfg", "rfw"], gap: 26, rx: 60, rz: -34, hl: [] }, html: () => `
+    <p class="lead">The same workflow, rerun on Rivaux Creek–Missouri River (HUC12 103001021306), a Missouri River floodplain in the same NISAR frame.</p>
+    <div class="pair">
+      <figure><img src="data/img/cmp_110100070301_agree.webp" alt="Strother Creek, model versus NWI" loading="lazy"><figcaption>Strother Creek (karst): model and NWI agree along the valleys</figcaption></figure>
+      <figure><img src="data/img/cmp_103001021306_agree.webp" alt="Rivaux Creek, model versus NWI" loading="lazy"><figcaption>Rivaux Creek (floodplain): blue both, orange model only, red NWI only</figcaption></figure>
+    </div>
+    <ul class="tight small">
+      <li>Spatial AP of the map model: 0.72 in Strother Creek, 0.49 in Rivaux Creek. Random folds give 0.82 and 0.84 and hide the difference.</li>
+      <li>HAND, the strongest input in karst, adds nothing on the floodplain (−0.03); soils, radar after soils and Sentinel-2 carry the model there.</li>
+      <li>Transfer fails: the Strother Creek model scores AP 0.08 on Rivaux Creek; the reverse reaches 0.44. A statewide map needs training data from each region.</li>
+    </ul>
+    <p class="small"><a href="index.html#second">Maps and full tables in the viewer →</a></p>`,
+    after: () => {} },
   { tab: "Discussion", view: { show: [...INPUTS, "nwilab", "rfg", "rfw"], gap: 26, rx: 60, rz: -34, hl: [] }, html: () => `
     <div class="three">
-      <div class="box"><h3>1 · Terrain first, radar second</h3><p>Height above stream carries most of the skill; L- and C-band radar each add a significant, similar step, and locate wetland interiors that terrain misses. Use terrain at 8–16 m, not 1 m.</p></div>
+      <div class="box"><h3>1 · Which inputs matter depends on the landscape</h3><p>In karst, height above stream carries most of the skill and both radars add a clear step. On the Missouri River floodplain HAND adds nothing and soils and Sentinel-2 matter more. TWI fails at 1 m in both.</p></div>
       <div class="box"><h3>2 · The ceiling is the label</h3><p>The model reproduces NWI (AP ${fmt(S.all_gw_s2.ap, 2)}), and NWI here is floodplain forest. Edge cells, omission of small wetlands and only 23 emergent polygons limit what any learner can learn.</p></div>
       <div class="box"><h3>3 · Fens need their own evidence</h3><p>Thermal and phenology proxies do not single out a 0.5 ha fen at 10–100 m. Finding fens needs fen-specific labels and sub-metre data.</p></div>
     </div>
     <div>
       <h3 style="margin:0 0 6px;font-family:var(--display);font-size:16px">Limitations</h3>
       <ul class="tight small">
-        <li>One watershed, one physiographic region; reference data = NWI, itself incomplete.</li>
+        <li>Two watersheds; models do not transfer between them. Reference data = NWI, itself incomplete.</li>
         <li>The best of 13 input sets was chosen after the fact; paired tests support the key gains.</li>
         <li>NISAR products are provisional (calibration still being refined); radar wet and dry dates are also summer and autumn.</li>
       </ul>
@@ -445,7 +458,7 @@ let idx = 0;
 function go(i, push = true) {
   idx = Math.max(0, Math.min(STEPS.length - 1, i)); cur = STEPS[idx];
   [...tabs.children].forEach((b, j) => { if (j === idx) { b.setAttribute("aria-current", "step"); b.scrollIntoView({ block: "nearest", inline: "nearest" }); } else b.removeAttribute("aria-current"); });
-  card.innerHTML = `<div class="num">Step ${idx + 1} of ${STEPS.length}</div><h2>${["What are we asking?", "Where", "What goes in", "How the model works", "How it is tested", "Results: what each data source adds", "Results: which learner", "Case study: Barton Fen", "What it means and what comes next"][idx]}</h2>${cur.html()}
+  card.innerHTML = `<div class="num">Step ${idx + 1} of ${STEPS.length}</div><h2>${["What are we asking?", "Where", "What goes in", "How the model works", "How it is tested", "Results: what each data source adds", "Results: which learner", "Case study: Barton Fen", "A second watershed", "What it means and what comes next"][idx]}</h2>${cur.html()}
     <div class="nav"><button type="button" id="prev" ${idx === 0 ? "disabled" : ""}>← ${idx > 0 ? STEPS[idx - 1].tab : "Back"}</button>
     <button type="button" class="primary" id="next" ${idx === STEPS.length - 1 ? "disabled" : ""}>${idx < STEPS.length - 1 ? STEPS[idx + 1].tab : "End"} →</button></div>`;
   card.querySelector("#prev").onclick = () => go(idx - 1); card.querySelector("#next").onclick = () => go(idx + 1);

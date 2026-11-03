@@ -43,6 +43,11 @@ section { display: grid; gap: 12px; }
 .map img { display: block; width: 100%; height: auto; image-rendering: auto; }
 .map svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .plot3d { width: 100%; aspect-ratio: 4 / 3; max-width: 100%; }
+.cmpmaps { display: grid; grid-template-columns: 992fr 953fr; gap: 16px; align-items: start; margin: 10px 0; }
+.cmpmaps figure { margin: 0; min-width: 0; }
+.cmpmaps figcaption { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.cmpmaps img { width: 100%; height: auto; display: block; }
+@media (max-width: 700px) { .cmpmaps { grid-template-columns: 1fr; } }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); align-items: center; }
 .sw { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2.5px solid; }
 .ramp { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -106,6 +111,7 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
     <div class="eyebrow">Phase 0 pilot · TWI, rainfall-driven hydroperiod, NISAR and Sentinel-1 radar, random-forest model</div>
     <h1>Strother Creek watershed, HUC12 110100070301</h1>
     <p class="ovlink"><a href="overview.html">Project overview: an interactive 3D walk-through of the question, data, method, results and next steps →</a></p>
+    <p class="ovlink"><a href="#second">Second watershed: Rivaux Creek–Missouri River, maps and comparison with Strother Creek ↓</a> · <a href="#checks">Robustness checks ↓</a></p>
     <p class="ovlink"><a href="drone.html">Barton Fen drone survey: 3 cm orthophoto and 6 cm LiDAR surface model of the study site →</a></p>
     <p>The 1 m bare-earth DEM mosaicked from six MO_7County_D23 tiles (2023 acquisition), with three MO_FEMAR7 tiles (2017) filling 10 km² in the north-west where the 2023 project ends, and clipped to the HUC12 plus a 200 m buffer. The fen study site sits on the valley floor of Strother Creek.</p>
     <div class="facts" id="facts"></div>
@@ -434,6 +440,19 @@ footer code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere
     <div class="sechead">
       <h2>Second watershed: Rivaux Creek–Missouri River</h2>
       <p>HUC12 103001021306, 122 km² on the Missouri River east of Jefferson City, inside the same NISAR frame. The whole workflow was rerun with the same code (no thermal data). Missouri River alluvial plain and Ozark-border hills, against the dissected dolomite karst of Strother Creek.</p>
+    </div>
+    <div class="panel">
+      <div class="ptitle"><span>Both watersheds on their 16 m model grids</span><span>same scale; each about 15 km wide</span></div>
+      <div class="lg"><span class="lbl">Layer</span><div class="seg" role="group" aria-label="Comparison map layer">
+        <button type="button" data-cmp="agree" aria-pressed="true">Model vs NWI</button>
+        <button type="button" data-cmp="prob" aria-pressed="false">Map-model probability</button>
+        <button type="button" data-cmp="hand" aria-pressed="false">HAND (1 km² streams)</button></div></div>
+      <div class="cmpmaps">
+        <figure><figcaption>Strother Creek (HUC12 110100070301), Ozark karst</figcaption><img id="cmpA" src="data/img/cmp_110100070301_agree.webp" width="992" height="701" alt="Strother Creek map"></figure>
+        <figure><figcaption>Rivaux Creek–Missouri River (HUC12 103001021306), river floodplain</figcaption><img id="cmpB" src="data/img/cmp_103001021306_agree.webp" width="953" height="1246" alt="Rivaux Creek map"></figure>
+      </div>
+      <div class="legend" id="cmpleg"></div>
+      <p class="note">Model vs NWI uses out-of-fold predictions of the map model at the strict (F1) cut-off chosen inside the folds. Grey relief: not modelled (outside cells or open water).</p>
     </div>
     <div class="row">
       <div class="panel">
@@ -1034,6 +1053,14 @@ new MutationObserver(render).observe(document.documentElement, { attributes: tru
       `<tr><td>Map model trained in the other watershed</td><td class="num">${f3(tBA.ap)}</td><td class="num">${f3(tAB.ap)}</td></tr>`;
     const PK = [["topo_hand - topo", "HAND, to terrain"], ["topo_nisar - topo", "NISAR, to terrain"], ["topo_s1 - topo", "Sentinel-1, to terrain"], ["topo_gw - topo_hand", "SSURGO"], ["all_gw - topo_gw", "Both radars, after soils"], ["all_gw_s2 - all_gw", "Sentinel-2"], ["all_gw_s2_geo - all_gw_s2", "Geology"]];
     document.getElementById("cmppair").innerHTML = `<tr><th>Addition</th><th>Strother Creek</th><th>Rivaux Creek</th></tr>` + PK.map(([k, n]) => `<tr><td>${n}</td><td class="num">${dd(A.paired[k])}</td><td class="num">${dd(B.paired[k])}</td></tr>`).join("");
+    const CL = { agree: '<span><i class="sw fill" style="border-color:#1f5fa8;background:#1f5fa8"></i>Model and NWI</span><span><i class="sw fill" style="border-color:#e08a1e;background:#e08a1e"></i>Model only</span><span><i class="sw fill" style="border-color:#c2185b;background:#c2185b"></i>NWI only</span>',
+      prob: '<span>Probability of NWI vegetated wetland, 0 </span><i style="display:inline-block;width:160px;height:10px;border-radius:2px;background:linear-gradient(90deg,#ffffd9,#c7e9b4,#41b6c4,#225ea8,#081d58)"></i><span> 1</span>',
+      hand: '<span>Height above nearest drainage, 0 m </span><i style="display:inline-block;width:160px;height:10px;border-radius:2px;background:linear-gradient(90deg,#081d58,#225ea8,#41b6c4,#c7e9b4,#ffffd9)"></i><span> ≥10 m</span>' };
+    const setCmp = l => { document.querySelectorAll("[data-cmp]").forEach(b => b.setAttribute("aria-pressed", b.dataset.cmp === l));
+      document.getElementById("cmpA").src = `data/img/cmp_${H[0]}_${l}.webp`; document.getElementById("cmpB").src = `data/img/cmp_${H[1]}_${l}.webp`;
+      document.getElementById("cmpleg").innerHTML = CL[l]; };
+    document.querySelectorAll("[data-cmp]").forEach(b => b.addEventListener("click", () => setCmp(b.dataset.cmp)));
+    setCmp("agree");
     document.getElementById("cmpnote").innerHTML = `Prevalence ${f3(A.prevalence)} and ${f3(B.prevalence)}. Random cross-validation gives about the same AP in both watersheds (${f3(A.random_cv.ap)} and ${f3(B.random_cv.ap)}); spatial blocks show they are not alike. HAND, the strongest input in karst, adds nothing on the Missouri River floodplain, where most of the valley sits within a few metres of the channel; Sentinel-2, soils and the radars matter more there.`;
   }
 }

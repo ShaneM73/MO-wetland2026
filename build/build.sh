@@ -12,4 +12,5 @@ for s in prep prep2 prep3 prep4 prep4b prep5 geo_units prep7; do
   echo "== $s"; "$PY" "$s.py"
 done
 "$PY" split.py "$out" data7.json
+"$PY" second_maps.py "$out"   # both-watershed comparison maps (data/img/cmp_*.webp)
 "$PY" overview_build.py "$out"
